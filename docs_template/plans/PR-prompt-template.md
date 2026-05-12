@@ -20,8 +20,9 @@
 
 1. Create branch: `pr{N}-{description}`
 2. TDD: write failing tests → implement → refactor
-3. Code review: pass `docs/code-review.md` checklist locally
-4. Commit and merge
+3. Quality gates: run locally — lint, typecheck, test, build, grep guards — all clean
+4. Code review: pass `docs/code-review.md` 4-phase checklist locally — zero rejection triggers
+5. Commit and auto merge to main
 
 ## Implementation
 
@@ -94,7 +95,7 @@
 ### Code review gate
 
 - [ ] 4-phase review passed (`docs/code-review.md`)
-- [ ] No rejection triggers
+- [ ] No rejection triggers FIRED (debug prints, secrets, bare catch, raw env reads, etc.)
 
 ### Final
 

@@ -25,8 +25,10 @@ your-project/
 │   │   ├── progress.md     # Master tracking: PRs, pipeline, quality, sessions
 │   │   ├── phase-plan-template.md            # Phase plan template
 │   │   └── PR-prompt-template.md             # Single-PR implementation prompt
-│   └── specs/
-│       └── spec-template.md                  # Feature specification template
+│   ├── specs/
+│   │   └── spec-template.md                  # Feature specification template
+│   └── commands/
+│       └── pr.md                             # Atomic PR workflow slash command
 └── .gitignore
 ```
 

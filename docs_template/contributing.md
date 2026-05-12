@@ -66,11 +66,10 @@ Example: `pr1-config-logging`, `pr2-user-auth`
 2. Write tests first (TDD)
 3. Implement changes
 4. Run full test suite + lint + typecheck locally
-5. Run code review checklist (`docs/code-review.md`)
+5. Run code review checklist (`docs/code-review.md`) — all 4 phases, zero rejection triggers
 6. Commit with conventional commit message
 7. Open PR with the `docs/PR-template.md` format
-8. Address review feedback
-9. Squash-merge when approved
+8. Auto merge when all gates passed and CI is green (`gh pr merge --auto --squash`)
 
 ## Environment variables
 

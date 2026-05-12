@@ -28,11 +28,11 @@ This document describes the protocol for an AI to instantiate `docs_template/` �
 | `{package_manager}` / `{install_command}` | quickstart, contributing | Platform |
 | `{verify_command}` | quickstart, contributing | Platform |
 | `{start_command}` | quickstart | Platform |
-| `{lint_cmd}` / `{lint_command}` | code-review, PR-template, PR-prompt, phase-plan, quickstart | Tooling |
-| `{typecheck_cmd}` / `{typecheck_command}` | code-review, PR-template, PR-prompt, quickstart | Tooling |
-| `{test_cmd}` / `{test_command}` | code-review, PR-template, PR-prompt, contributing, phase-plan | Tooling |
+| `{lint_cmd}` / `{lint_command}` | code-review, PR-template, PR-prompt, phase-plan, quickstart, commands/pr | Tooling |
+| `{typecheck_cmd}` / `{typecheck_command}` | code-review, PR-template, PR-prompt, quickstart, commands/pr | Tooling |
+| `{test_cmd}` / `{test_command}` | code-review, PR-template, PR-prompt, contributing, phase-plan, commands/pr | Tooling |
 | `{test_cmd_single}` | contributing | Tooling |
-| `{build_cmd}` / `{build_command}` | code-review, PR-template, quickstart | Tooling |
+| `{build_cmd}` / `{build_command}` | code-review, PR-template, quickstart, commands/pr | Tooling |
 | `{e2e_cmd}` | code-review, phase-plan | Tooling |
 | `{benchmark_cmd}` | code-review | Tooling |
 | `{format_cmd}` | (not in templates but useful) | Tooling |
@@ -47,8 +47,8 @@ This document describes the protocol for an AI to instantiate `docs_template/` �
 | `{cache}` / `{storage}` / `{queue}` | architecture | Stack |
 | `{monitoring}` / `{cicd}` / `{hosting}` | architecture | Stack |
 | `{env_read_pattern}` | code-review | Grep guard |
-| `{debug_print_pattern}` | code-review, PR-template | Grep guard |
-| `{todo_pattern}` | code-review, PR-template | Grep guard |
+| `{debug_print_pattern}` | code-review, PR-template, commands/pr | Grep guard |
+| `{todo_pattern}` | code-review, PR-template, commands/pr | Grep guard |
 | `{sleep_pattern}` | testing | Grep guard |
 | `{mock_not_called}` / `{bare_assert_true}` | testing | Grep guard |
 | `{missing_assert_in_test}` / `{test_specific_impl}` | testing | Grep guard |
@@ -58,7 +58,7 @@ This document describes the protocol for an AI to instantiate `docs_template/` �
 
 ### Runtime (filled by developers during daily use — NOT by this script)
 
-Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `archive/learnings.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, and navigation's current-focus section are also runtime — left with placeholder hints intact.
+Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `archive/learnings.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's current-focus section, and `commands/pr.md`'s workflow instructions are also runtime — left with placeholder hints intact.
 
 ---
 
@@ -231,7 +231,7 @@ Phase 4 — Quality customization (press Enter to accept defaults)
 Create `docs/` and populate it:
 
 ```
-mkdir -p docs/decisions docs/plans docs/specs docs/archive
+mkdir -p docs/decisions docs/plans docs/specs docs/archive docs/commands
 ```
 
 For **setup-time templates** (those containing setup-time placeholders), copy the file and replace every placeholder with the collected values. Use exact string substitution.
@@ -251,6 +251,7 @@ plans/phase-plan-template.md   → substitute {test_cmd}, {lint_cmd}, {e2e_cmd},
 plans/PR-prompt-template.md    → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}; leave summary, implementation, test names as runtime
 plans/progress.md              → substitute {PROJECT_NAME}; leave PR status, sessions, notes as runtime
 PR-template.md                 → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}, {debug_print_pattern}, {todo_pattern}; leave phase_plan_link, adr_links, implementation checkboxes as runtime
+commands/pr.md                 → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}, {debug_print_pattern}, {todo_pattern}; leave workflow instructions as runtime
 architecture.md                → substitute {PROJECT_NAME} + tech stack table; leave system_overview, data_flow_diagram, module boundaries, design decisions as runtime
 navigation.md                  → substitute initial Current focus to "docs setup"; scout corrections, task map left as hints
 ```
@@ -263,6 +264,17 @@ contributing.md    → substitute all 15+ placeholders
 code-review.md     → substitute all commands, grep patterns, {threshold}, {project_rejections}
 testing.md         → substitute {PROJECT_NAME} + all grep patterns
 ```
+
+**Special: Harness command installation** — After generating `docs/commands/pr.md`, detect which AI coding harness the project uses and copy the command file to the harness's native commands directory. This makes `/pr` work as a native slash command:
+
+| Harness | Command directory | Condition |
+|---------|-------------------|-----------|
+| Claude Code | `.claude/commands/pr.md` | `.claude/` directory exists |
+| OpenCode | `.opencode/commands/pr.md` | `.opencode/` directory exists |
+| Codex | `.codex/commands/pr.md` | `.codex/` directory exists |
+| Generic | `docs/commands/pr.md` | Always created (canonical copy) |
+
+If no harness directory exists and the project is new, create `docs/commands/pr.md` only. The canonical copy in `docs/commands/` works as a reference all harnesses can read.
 
 **Special: CLAUDE-template.md** — copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`. This file enforces the **plan-first rule**: before any code change, create a PR plan doc and update progress/architecture/README first.
 

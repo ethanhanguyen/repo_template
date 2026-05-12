@@ -22,12 +22,13 @@
    - `{typecheck_cmd}` — zero errors
    - `{test_cmd}` — all passing
    - `{build_cmd}` — succeeds (if applicable)
+   - Grep `{env_read_pattern}` — no raw env reads outside config layer
    - Grep `{debug_print_pattern}` — none
    - Grep `{todo_pattern}` — addressed or tracked
    - No secrets, tokens, or credentials in code
 4. **Code review**: pass all 4 phases of `docs/code-review.md` — zero rejection triggers fired
 5. **Commit**: conventional commit message (`feat:`, `fix:`, `docs:`, etc.)
-6. **Merge**: use the branch completion protocol only (structured merge/PR flow — never merge without it)
+6. **Auto merge to main**: `gh pr merge --auto --squash` (or manual `gh pr merge --squash`), then delete feature branch
 
 Never claim a gate is passed without fresh verification evidence (run the command, read the output, then claim).
 
@@ -89,12 +90,17 @@ Never claim a gate is passed without fresh verification evidence (run the comman
 
 ## Gate 4 — Code review
 
-- [ ] 4-phase review passed (`docs/code-review.md`)
+- [ ] 4-phase review passed (`docs/code-review.md`): automated gates → diff inspection → code patterns → behavioral gates
 - [ ] No rejection triggers fired (see rejection triggers in `docs/code-review.md`)
+- [ ] Phase 5.1: confirm Phase 4 automated gates still green
+- [ ] Phase 5.2: diff scope clean, no dead code, no duplicated logic
+- [ ] Phase 5.3: conventions matched, defensive error handling, resource management
+- [ ] Phase 5.4: simplicity, surgical, explicit, goal-driven — all passed
 
 ## Git workflow (gates 5–6)
 
 - [ ] Commit with conventional commit message
-- [ ] Merge via branch completion protocol (structured merge/PR flow)
+- [ ] Auto merge to main (`gh pr merge --auto --squash` or manual `gh pr merge --squash`)
+- [ ] Delete feature branch after merge
 - [ ] All gates above passed with fresh verification
 - [ ] Docs updated if needed (architecture.md, README.md, progress.md)
