@@ -34,13 +34,13 @@ Before any other work, the AI scans the target project directory:
    - Package manager: read from config files
    - Tooling commands: detect existing lint/test/build scripts from config or Makefile
    - Env vars: parse `.env.example` if present
-   - Harness directory: check for `.claude/`, `.opencode/`, `.codex/`
+    - Harness directory: note presence/absence of `.claude/`, `.opencode/`, `.codex/` (actual question asked later in Phase 2a)
 
 ### Fresh install protocol
 
 1. **Clone source**: `git clone {TEMPLATE_REPO_URL} /tmp/repo_template`
 2. **Inventory**: Read all files in `docs_template/` to understand each template
-3. **Discover**: Ask Phase 1–4 questions, derive all defaults (Steps 0–1)
+3. **Discover**: Ask Phase 1–4 questions (including Phase 2a harness question), derive all defaults (Steps 0–1)
 4. **Approval gate**: Present the full plan (files to create, placeholders to fill, tooling commands) and **wait for user approval** before writing any files
 5. **Generate**: Create `docs/`, copy templates, substitute every placeholder (Step 3)
 6. **Verify**: Run commands to confirm they work, report results (Step 4)
@@ -179,23 +179,29 @@ Read every file in `docs_template/`. Understand the full placeholder surface.
 
 ### Step 1 — Ask & derive (Phases 1–4)
 
-Ask these questions, then derive all other defaults from the lookup tables above. If the project already has code, auto-detect from config files first (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.).
+Ask these questions in order, then derive all other defaults from the lookup tables above. If the project already has code, auto-detect from config files first (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.).
+
+**IMPORTANT**: Phase 2a (harness) is NOT optional. You must ask it even if no harness directory is detected. Do not silently skip it.
 
 **Phase 1 — Identity**: project name, repo URL, language/framework, package manager.
 
 **Phase 2 — Tooling** (derived, confirm): `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{format_cmd}`, `{e2e_cmd}`, `{benchmark_cmd}`, `{install_command}`, `{verify_command}`, `{start_command}`, `{deploy_command}`.
 
-**Phase 2a — Harness** (detect, confirm): Check for `.claude/`, `.opencode/`, `.codex/` directories. If any exist, confirm the detected harness. If none exist, **ask the user** which AI coding harness they plan to use:
+**Phase 2a — Harness** (REQUIRED question — never skip): Before continuing, scan for `.claude/`, `.opencode/`, `.codex/` directories. Then:
+
+- **If a harness directory exists**: confirm with the user (e.g. "Detected .claude/ — use Claude Code?"). Update if they correct you.
+- **If NO harness directory exists**: you MUST ask this question. Do not silently proceed.
 
 ```
+No AI harness directory detected (.claude/, .opencode/, .codex/).
 Which AI coding harness do you plan to use?
-  1. Claude Code — creates .claude/commands/pr.md
-  2. OpenCode   — creates .opencode/commands/pr.md
-  3. Codex      — creates .codex/commands/pr.md
-  4. None       — only creates docs/commands/pr.md (canonical copy)
+  1. Claude Code — I'll create .claude/commands/pr.md
+  2. OpenCode   — I'll create .opencode/commands/pr.md
+  3. Codex      — I'll create .codex/commands/pr.md
+  4. None       — only docs/commands/pr.md (canonical copy)
 ```
 
-If the user selects a harness, create the directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md` there during Step 3 generation. `docs/commands/pr.md` is always created as the canonical copy.
+If the user selects 1–3, create the directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md` there during Step 3. `docs/commands/pr.md` is always created as the canonical copy. If the user selects 4 (None), skip harness-specific install.
 
 **Phase 3 — Structure** (derived, confirm): `{config_file}`, `{module_1}`/`{module_2}`, tech stack (`{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`), env vars (parse `.env.example` if present), `{additional_tools}`.
 
@@ -372,10 +378,11 @@ Repo URL? [github.com/user/my-fastapi-app]
 Confirm Python/FastAPI? [Y]
 Database: PostgreSQL? [Y]
 
-All defaults accepted. Generating docs/ ...
+No harness dir detected — which harness? [4 — None]
+  (1. Claude Code  2. OpenCode  3. Codex  4. None)
 
-Created 14 files in docs/. Verified: ruff clean, mypy clean, pytest 42 passed.
-Cleanup: removed /tmp/repo_template.
+All defaults accepted. Generating docs/ ...
+...
 ```
 
 ### Example: update mode (zero questions)
@@ -412,7 +419,7 @@ Cleanup: removed /tmp/repo_template.
 - **Clone source first**. Before generating anything, `git clone {TEMPLATE_REPO_URL} /tmp/repo_template` to get the latest `docs_template/`.
 - **Never invent project details**. If detection fails, ask — don't guess (fresh mode) or leave `<!-- TODO -->` (update mode).
 - **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md` — these are the agent instruction files that enforce the plan-first rule.
-- **Install harness commands**: detect which AI harness the project uses (`.claude/`, `.opencode/`, `.codex/`) and copy `commands/pr.md` to the matching directory. Always create `docs/commands/pr.md` as the canonical copy.
+- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user which harness they plan to use (Phase 2a). Copy `commands/pr.md` to the matching directory. Always create `docs/commands/pr.md` as the canonical copy.
 - **Verify after generation**. If a command fails, flag it but don't block — the project may not have code yet.
 - **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus, architecture design decisions, or phase plan goals.
 - **Preserve exact formatting**. Only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.
