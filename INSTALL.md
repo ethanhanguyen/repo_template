@@ -50,8 +50,9 @@ Before any other work, the AI scans the target project directory:
 
 1. **Clone source**: same as fresh install
 2. **Inventory**: Read current `docs/` + new `docs_template/` — diff to find what changed
-3. **Auto-detect**: Re-derive all defaults from current repo state (no questions)
-4. **Approval gate**: Present the diff summary (what changed, what gets regenerated, what's preserved) and **wait for user approval** before writing any files. Continue only after explicit confirmation.
+3. **Auto-detect**: Re-derive all defaults from current repo state (no questions). Also check harness dirs (`.claude/`, `.opencode/`, `.codex/`).
+4. **Approval gate**: Present the diff summary (what changed, what gets regenerated, what's preserved, harness status) and **wait for user approval** before writing any files. Continue only after explicit confirmation.
+   - If no harness dirs exist, the summary must include: `No harness dirs detected. Creating docs/commands/pr.md (canonical only). To add harness support, reply with the harness name (claude/opencode/codex).`
 5. **Generate**: Apply only changed/new templates, preserve all runtime content
 6. **Verify**: Run commands, report results
 7. **Cleanup**: same as fresh install
@@ -326,7 +327,7 @@ Only regenerate files that differ from the template source. Use a content-based 
 | `PR-template.md`, `commands/pr.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
 | `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
 | Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate from `CLAUDE-template.md` / `AGENTS-template.md` with current tooling values. Preserve any custom task routing the user may have added — warn if template changed and list conflicts. |
-| Harness command files (`.claude/commands/pr.md`, `.opencode/commands/pr.md`, `.codex/commands/pr.md`) | **Regenerate if harness dir exists**: copy from updated `commands/pr.md`. |
+| Harness command files (`.claude/commands/pr.md`, `.opencode/commands/pr.md`, `.codex/commands/pr.md`) | **Regenerate if harness dir exists**: copy from updated `commands/pr.md`. **If no harness dir exists**: create only `docs/commands/pr.md` (canonical). Include a harness note in the approval summary so the user can request a specific harness if desired. |
 
 ### Update protocol steps
 
@@ -340,6 +341,7 @@ Only regenerate files that differ from the template source. Use a content-based 
      Runtime content preserved: 3 ADRs, 2 specs, 14 learnings, 2 phase plans
      Files being regenerated: 5
      Files untouched: 8
+     Harness: none detected → docs/commands/pr.md (canonical). Reply with "claude", "opencode", or "codex" to add harness support.
    
    Proceed? (yes/no)
    ```
@@ -351,7 +353,8 @@ Only regenerate files that differ from the template source. Use a content-based 
 ### Update mode guardrails
 
 - **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions).
-- **Never ask questions**. Everything is auto-detected. If detection fails on a required field, leave the placeholder with `<!-- TODO -->` and mention it in the summary.
+- **Never ask standalone questions**. Everything is auto-detected. If detection fails on a required field, leave the placeholder with `<!-- TODO -->` and mention it in the summary.
+- **Harness exception**: harness preference cannot be auto-detected. Always include a harness line in the approval summary: if dirs exist, confirm; if not, note that canonical copy will be created and tell the user they can reply with a harness name to add support. This is a summary note, not a separate question — the user sees it during the approval gate and can act on it.
 - **Never delete user-created files** in `docs/` that don't correspond to a template.
 - **Warn before overwriting** any file the user has modified from its template-original form (if the diff is non-trivial).
 - **Preserve custom grep patterns** the user may have added to `code-review.md` or `PR-template.md`.
@@ -407,6 +410,11 @@ Update summary:
 Applying changes...
   1 file updated. Verified: ruff clean, mypy clean, pytest 42 passed.
 Cleanup: removed /tmp/repo_template.
+```
+
+When no harness dirs exist, the summary includes:
+```
+  Harness: none detected → docs/commands/pr.md (canonical). Reply with "claude", "opencode", or "codex" to add harness support.
 ```
 
 ---
