@@ -1,6 +1,6 @@
 # repo_template
 
-AI-assisted software development workflow in a box. Point an AI at this repo, and it sets up your project's entire docs infrastructure — templates, quality gates, tracking dashboards, and agent rules — customized to your stack.
+AI-assisted software development workflow in a box. Copy a single file, point an AI at it, and get your project's entire docs infrastructure — templates, quality gates, tracking dashboards, and agent rules — customized to your stack.
 
 ## What you get
 
@@ -34,36 +34,22 @@ your-project/
 
 ## Usage
 
-### New projects
+### Any project (new or existing)
 
-1. **Clone this repo** as your project starter
-2. **Open it with an AI coding agent** (Claude Code, OpenCode, Cursor, etc.)
+1. **Copy `INSTALL.md`** into your project root. That's the only file you need.
+2. **Open the project with an AI coding agent** (Claude Code, OpenCode, Cursor, etc.).
 3. **Say**: *"Read INSTALL.md and set up the workflow"*
-4. **Answer ~5-8 questions** about your stack — the AI derives everything else
-5. **Done** — `docs/`, `CLAUDE.md`, and `.gitignore` are generated and verified
+4. The AI clones the template source, auto-detects your stack, and presents a plan.
+5. **Approve the plan** — the AI generates everything and cleans up. No manual cleanup needed.
 
-### Existing projects
+### Two modes
 
-1. **Copy the essentials into your project**:
-   ```
-   cp -r docs_template/ your-project/
-   cp INSTALL.md your-project/
-   ```
-   (The `docs_template/` directory is temporary — it gets removed after generation.)
+| Mode | Trigger | Interaction |
+|------|---------|-------------|
+| **Fresh install** | No existing `docs/` | AI asks ~5-8 questions (language, framework, project identity), then presents plan for approval |
+| **Update/refresh** | Existing `docs/` from previous version | Zero questions — AI auto-detects everything, prints diff summary, waits for approval |
 
-2. **Open the project with an AI agent** and say: *"Read INSTALL.md and set up the workflow"*
-
-3. **The AI auto-detects** your existing stack from `package.json`, `pyproject.toml`, etc. — fewer questions than a fresh project.
-
-4. **After generation**, remove the scaffolding:
-   ```
-   rm -rf docs_template/ INSTALL.md
-   ```
-   Keep `CLAUDE.md`, `docs/`, and `.gitignore` — they're now yours.
-
-Or run it manually: read `INSTALL.md` and follow the 6-step protocol.
-
-### What the AI asks
+### What the AI asks (fresh install)
 
 | Phase | Questions | Example answer |
 |-------|-----------|----------------|
@@ -89,6 +75,6 @@ The AI detects your stack from existing config files (`package.json`, `pyproject
 | File | Purpose |
 |------|---------|
 | `docs_template/` | Template files with `{PLACEHOLDER}` tokens |
-| `INSTALL.md` | AI protocol: 6-step guided setup with 4-phase questionnaire |
+| `INSTALL.md` | AI protocol: clone source → detect mode → plan → approval → generate → verify → cleanup |
 | `CLAUDE.md` | Agent rules for this repo (plan-first, quality gates) |
 | `.gitignore` | Ignores generated `docs/`, secrets, OS/editor junk |

@@ -1,17 +1,60 @@
 # INSTALL.md — AI-Driven Workflow Setup
 
-This document describes the protocol for an AI to instantiate `docs_template/` → `docs/` for any software project. The AI asks targeted questions, fills all placeholders, and verifies the result.
+## How this works
+
+1. User copies **only this file** (`INSTALL.md`) into their project repo.
+2. An AI coding agent reads this file.
+3. The AI clones the template source repo (see `TEMPLATE_REPO_URL` below) to a temp directory to get `docs_template/`.
+4. The AI scans the target project, fills all placeholders, and generates `docs/`, root `CLAUDE.md`, and root `AGENTS.md`.
+5. The AI cleans up the temp clone. **Nothing else needs to be copied or left behind.**
+
+## Template source
+
+```
+TEMPLATE_REPO_URL = https://github.com/ethanhanguyen/repo_template
+TEMPLATE_DIR       = docs_template/
+```
+
+The AI clones `TEMPLATE_REPO_URL` into a temp directory (e.g. `/tmp/repo_template`), reads all files in `TEMPLATE_DIR`, and uses them to generate output. After generation, the temp clone is deleted.
 
 ---
 
 ## Protocol overview
 
-1. **Inventory**: Read all files in `docs_template/` to understand each template
-2. **Discover**: Ask Phase 1 questions (language, framework, project identity)
-3. **Derive**: Compute sensible defaults for all remaining placeholders
-4. **Confirm**: Present Phase 2–4 questions — user accepts defaults or overrides
-5. **Generate**: Create `docs/`, copy templates, substitute every placeholder
-6. **Verify**: Run commands to confirm they work, report results
+### Mode detection (run first)
+
+Before any other work, the AI scans the target project directory:
+
+1. **Does `docs/` already exist?**
+   - **No** → **Fresh install mode** (interactive, Phases 1–4)
+   - **Yes** → **Update/refresh mode** (zero questions, auto-detect). See [Update/refresh mode](#updaterefresh-mode) section below.
+
+2. **Auto-detect from repo state** (both modes):
+   - Language/framework: inspect `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, `build.gradle`, `mix.exs`, etc.
+   - Package manager: read from config files
+   - Tooling commands: detect existing lint/test/build scripts from config or Makefile
+   - Env vars: parse `.env.example` if present
+   - Harness directory: check for `.claude/`, `.opencode/`, `.codex/`
+
+### Fresh install protocol
+
+1. **Clone source**: `git clone {TEMPLATE_REPO_URL} /tmp/repo_template`
+2. **Inventory**: Read all files in `docs_template/` to understand each template
+3. **Discover**: Ask Phase 1–4 questions, derive all defaults (Steps 0–1)
+4. **Approval gate**: Present the full plan (files to create, placeholders to fill, tooling commands) and **wait for user approval** before writing any files
+5. **Generate**: Create `docs/`, copy templates, substitute every placeholder (Step 3)
+6. **Verify**: Run commands to confirm they work, report results (Step 4)
+7. **Cleanup**: `rm -rf /tmp/repo_template` (Step 5)
+
+### Update/refresh protocol
+
+1. **Clone source**: same as fresh install
+2. **Inventory**: Read current `docs/` + new `docs_template/` — diff to find what changed
+3. **Auto-detect**: Re-derive all defaults from current repo state (no questions)
+4. **Approval gate**: Present the diff summary (what changed, what gets regenerated, what's preserved) and **wait for user approval** before writing any files. Continue only after explicit confirmation.
+5. **Generate**: Apply only changed/new templates, preserve all runtime content
+6. **Verify**: Run commands, report results
+7. **Cleanup**: same as fresh install
 
 ---
 
@@ -120,7 +163,7 @@ Additional grep patterns per language:
 
 ### Coverage thresholds
 
-Default: `{threshold}` = 85 (overall). New code = 90. Integration = 80. Can be overridden in Phase 4.
+Default: `{threshold}` = 85 (overall). New code = 90. Integration = 80. Can be overridden during setup.
 
 ### E2E / Benchmark commands
 
@@ -128,105 +171,43 @@ Default: `{e2e_cmd}` = (none), `{benchmark_cmd}` = (none) unless the project alr
 
 ---
 
-## Setup protocol
+## Setup protocol (fresh install)
 
-### Step 0 — Read the templates
+### Step 0 — Read templates
 
 Read every file in `docs_template/`. Understand the full placeholder surface.
 
-### Step 1 — Ask Phase 1 (Project Identity)
+### Step 1 — Ask & derive (Phases 1–4)
 
-Ask these 4 questions. From the answers, derive all Phase 2–4 defaults internally.
+Ask these questions, then derive all other defaults from the lookup tables above. If the project already has code, auto-detect from config files first (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.).
 
-```
-Phase 1 — Project identity
-- Project name?
-- Repo URL (or local path)?
-- Primary language/framework? (e.g. Python/Django, TypeScript/Next.js, Go, Rust)
-- Package manager? (auto-detect from project files if possible)
-```
+**Phase 1 — Identity**: project name, repo URL, language/framework, package manager.
 
-If the project directory already has code, inspect `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `.env.example` to auto-answer as much as possible.
+**Phase 2 — Tooling** (derived, confirm): `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{format_cmd}`, `{e2e_cmd}`, `{benchmark_cmd}`, `{install_command}`, `{verify_command}`, `{start_command}`, `{deploy_command}`.
 
-### Step 2 — Derive & present Phase 2 (Tooling Confirmation)
+**Phase 3 — Structure** (derived, confirm): `{config_file}`, `{module_1}`/`{module_2}`, tech stack (`{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`), env vars (parse `.env.example` if present), `{additional_tools}`.
 
-Based on Phase 1 answers, derive all defaults using the lookup tables above. Present them as a single confirmation block:
+**Phase 4 — Quality** (derived, confirm): coverage thresholds (85/90/80), grep patterns (`{env_read_pattern}`, `{debug_print_pattern}`, `{todo_pattern}`, `{sleep_pattern}`, `{mock_not_called}`, `{bare_assert_true}`, `{missing_assert_in_test}`, `{test_specific_impl}`, `{env_read_in_test}`), custom `{project_rejections}`.
+
+### Step 2 — Approval gate
+
+Present the full plan before writing any files. Summarize:
 
 ```
-Phase 2 — Tooling (press Enter to accept all defaults, or type overrides)
+Ready to generate:
+  Mode: fresh install
+  Files to create: 14
+  Placeholders to fill: {N}
+  Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
+  
+  Files will be created in: docs/ (all), ./CLAUDE.md, ./AGENTS.md, {harness}/commands/pr.md
 
-  lint:          {lint_cmd}
-  typecheck:     {typecheck_cmd or "(none)"}
-  test:          {test_cmd}
-  test (single): {test_cmd_single}
-  build:         {build_cmd or "(none)"}
-  format:        {format_cmd or "(none)"}
-  e2e:           {e2e_cmd or "(none)"}
-  benchmark:     {benchmark_cmd or "(none)"}
-  install:       {install_command}
-  verify:        {verify_command}
-  start:         {start_command}
-  deploy:        {deploy_command or "(none)"}
+Proceed? (yes/no)
 ```
 
-### Step 3 — Present Phase 3 (Stack, Structure, Conventions)
+**Do not proceed without explicit user confirmation.** If the user says no, ask what to change and re-present.
 
-Derive defaults and present:
-
-```
-Phase 3 — Structure & conventions (press Enter to accept each, or override)
-
-  Config file:      {config_file}
-  Branch prefix:    pr<N>-
-  Commit convention: conventional commits (feat, fix, docs, test, refactor, ci, chore, perf)
-
-  Directory structure:
-    {derived from language}
-
-  Tech stack:
-    Backend:     {backend_framework or "(none)"}
-    Frontend:    {frontend_framework or "(none)"}
-    Database:    {database or "(none)"}
-    Cache:       {cache or "(none)"}
-    Storage:     {storage or "(none)"}
-    Queue:       {queue or "(none)"}
-    Monitoring:  {monitoring or "(none)"}
-    CI/CD:       {cicd or "GitHub Actions"}
-    Hosting:     {hosting or "(none)"}
-
-  ENV variables (from .env.example or manual):
-    VAR_NAME | Required | Default | Description
-
-  Additional prerequisites (for quickstart): {additional_tools or "(none)"}
-```
-
-If `.env.example` exists, parse it to auto-fill the ENV table. Otherwise ask the user to list required env vars.
-
-### Step 4 — Present Phase 4 (Quality Gates)
-
-```
-Phase 4 — Quality customization (press Enter to accept defaults)
-
-  Coverage threshold (overall):  85%
-  New code coverage target:       90%
-  Integration coverage target:    80%
-
-  Grep guards (derived, confirm):
-    env_read_pattern:    {env_read_pattern}
-    debug_print_pattern: {debug_print_pattern}
-    todo_pattern:        {todo_pattern}
-    sleep_pattern:       {sleep_pattern}
-    mock_not_called:     {mock_not_called}
-    bare_assert_true:    {bare_assert_true}
-    missing_assert:      {missing_assert_in_test}
-    test_specific_impl:  {test_specific_impl}
-    env_read_in_test:    {env_read_in_test}
-
-  Project-specific rejection triggers (add to code-review.md)?
-    (none by default)
-```
-
-### Step 5 — Generate
+### Step 3 — Generate
 
 Create `docs/` and populate it:
 
@@ -282,7 +263,7 @@ If no harness directory exists and the project is new, create `docs/commands/pr.
 
 For placeholders that the user didn't provide (e.g., deploy_command when no deploy exists), write `(none)` or `<!-- TODO -->`.
 
-### Step 6 — Verify
+### Step 4 — Verify
 
 After generation, run these checks and report results:
 
@@ -292,17 +273,85 @@ After generation, run these checks and report results:
 4. Grep for remaining `{PLACEHOLDER}` tokens in `docs/` — should only find runtime placeholders (the ones intentionally left for developers)
 5. Print a summary: files created, placeholders substituted, verification results.
 
+### Step 5 — Cleanup
+
+After generation and verification, remove the temp clone:
+
+```bash
+rm -rf /tmp/repo_template
+```
+
+---
+
+## Update/refresh mode
+
+When `docs/` already exists (e.g. the project was set up with an older version of the templates), the AI runs a **zero-questions auto-detect** protocol. No Phases 1–4 questions are asked.
+
+### Detection (Step 0.5)
+
+Before cloning the source, scan the existing `docs/` to understand the current state:
+
+1. **Read existing docs**: which templates are already generated, which placeholders are filled
+2. **Read project config files**: `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `.env.example` — re-derive all defaults from current state
+3. **Read existing root files**: `CLAUDE.md`, `AGENTS.md` — check if they exist and what tooling is configured
+4. **Check for new/modified templates**: compare the template files in the clone (`/tmp/repo_template/docs_template/`) against the existing generated files in `docs/`
+
+### What to regenerate
+
+Only regenerate files that differ from the template source. Use a content-based comparison (not timestamp). For each file in `docs/`:
+
+| File | Action |
+|------|--------|
+| `index.md`, `quickstart.md`, `contributing.md`, `code-review.md`, `testing.md` | **Re-substitute**: re-derive all setup-time placeholders from current repo state. Apply to a fresh copy from the template. Overwrite the generated file. |
+| `architecture.md` | **Partial re-substitute**: update `{PROJECT_NAME}` + tech stack table. Preserve `{system_overview}`, `{data_flow_diagram}`, module boundaries, and design decisions — these are runtime content filled by developers. |
+| `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve all scout corrections and task map. |
+| `PR-template.md`, `commands/pr.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
+| `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
+| Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate from `CLAUDE-template.md` / `AGENTS-template.md` with current tooling values. Preserve any custom task routing the user may have added — warn if template changed and list conflicts. |
+| Harness command files (`.claude/commands/pr.md`, `.opencode/commands/pr.md`, `.codex/commands/pr.md`) | **Regenerate if harness dir exists**: copy from updated `commands/pr.md`. |
+
+### Update protocol steps
+
+1. **Clone source**: `git clone {TEMPLATE_REPO_URL} /tmp/repo_template`
+2. **Detect**: scan existing `docs/` + project config files. Auto-derive all placeholders.
+3. **Diff**: compare each template file against its generated counterpart to find what changed.
+4. **Report & wait for approval**: print a summary before making changes:
+   ```
+   Update summary:
+     Templates with changes: quickstart.md (new placeholder added), code-review.md (threshold changed)
+     Runtime content preserved: 3 ADRs, 2 specs, 14 learnings, 2 phase plans
+     Files being regenerated: 5
+     Files untouched: 8
+   
+   Proceed? (yes/no)
+   ```
+   **Do not proceed without explicit user confirmation.**
+5. **Apply**: regenerate only changed files per the table above.
+6. **Verify**: run `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}` (if they exist). Confirm no leftover `{PLACEHOLDER}` tokens.
+7. **Cleanup**: `rm -rf /tmp/repo_template`
+
+### Update mode guardrails
+
+- **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions).
+- **Never ask questions**. Everything is auto-detected. If detection fails on a required field, leave the placeholder with `<!-- TODO -->` and mention it in the summary.
+- **Never delete user-created files** in `docs/` that don't correspond to a template.
+- **Warn before overwriting** any file the user has modified from its template-original form (if the diff is non-trivial).
+- **Preserve custom grep patterns** the user may have added to `code-review.md` or `PR-template.md`.
+
 ---
 
 ## Example: minimal interaction
 
 **User says**: "Set up docs for my Python FastAPI project"
 
+**AI clones source**: `git clone https://github.com/anomalyco/repo_template /tmp/repo_template`
+
 **AI detects** (from `pyproject.toml`, `.env.example`, existing `src/`):
 - Language: Python, Framework: FastAPI
 - lint: `ruff check .`, test: `pytest --cov`, typecheck: `mypy src/`
 - DB: PostgreSQL, Cache: Redis
 - 3 env vars from `.env.example`
+- No existing `docs/` → fresh install mode
 
 **AI asks** (1 question block):
 ```
@@ -314,16 +363,60 @@ Database: PostgreSQL? [Y]
 All defaults accepted. Generating docs/ ...
 
 Created 14 files in docs/. Verified: ruff clean, mypy clean, pytest 42 passed.
+Cleanup: removed /tmp/repo_template.
+```
+
+### Example: update mode (zero questions)
+
+**User says**: "Update my docs"
+
+**AI clones source**: `git clone https://github.com/anomalyco/repo_template /tmp/repo_template`
+
+**AI detects** (from existing `docs/` + project config files):
+```
+docs/ found → update mode. Scanning...
+  Current setup: Python, FastAPI, ruff, pytest, PostgreSQL
+  Runtime content: 3 ADRs, 1 spec, 8 learnings, 2 phase plans
+  Templates changed: quickstart.md (new deploy_command placeholder)
+  Root files: CLAUDE.md — tooling commands unchanged, AGENTS.md — unchanged
+
+Update summary:
+  Regenerating: 1 file (quickstart.md)
+  Preserving: 13 files (all runtime content + unchanged templates)
+  Harness commands: .claude/commands/pr.md (regenerated)
+
+Applying changes...
+  1 file updated. Verified: ruff clean, mypy clean, pytest 42 passed.
+Cleanup: removed /tmp/repo_template.
 ```
 
 ---
 
+
 ## Guardrails for the AI
 
-- **Never skip a phase**. Even if defaults are accepted, present them explicitly.
-- **Never invent project details**. If detection fails, ask — don't guess.
-- **Never overwrite `docs/` if it already exists**. Warn and ask.
+### Both modes
+
+- **Clone source first**. Before generating anything, `git clone {TEMPLATE_REPO_URL} /tmp/repo_template` to get the latest `docs_template/`.
+- **Never invent project details**. If detection fails, ask — don't guess (fresh mode) or leave `<!-- TODO -->` (update mode).
 - **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md` — these are the agent instruction files that enforce the plan-first rule.
+- **Install harness commands**: detect which AI harness the project uses (`.claude/`, `.opencode/`, `.codex/`) and copy `commands/pr.md` to the matching directory. Always create `docs/commands/pr.md` as the canonical copy.
 - **Verify after generation**. If a command fails, flag it but don't block — the project may not have code yet.
 - **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus, architecture design decisions, or phase plan goals.
 - **Preserve exact formatting**. Only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.
+- **Clean up**: after generation and verification, `rm -rf /tmp/repo_template`.
+
+### Fresh install mode
+
+- **Never skip questions**. Even if defaults seem obvious, present them for confirmation.
+- **Never overwrite `docs/` if it already exists**. Warn and suggest switching to update mode.
+- **Wait for approval**. After deriving all defaults, present the full plan and wait for explicit user confirmation before generating files.
+
+### Update/refresh mode
+
+- **Never ask questions**. Everything is auto-detected from existing repo state.
+- **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions, navigation corrections).
+- **Never delete user-created files** in `docs/` that don't correspond to a template.
+- **Warn before overwriting** any file the user has modified from its template-original form.
+- **Print a diff summary** before making changes so the user can review.
+- **Preserve custom values**: grep patterns, coverage thresholds, project rejections the user already configured.
