@@ -1,0 +1,45 @@
+### macOS
+.DS_Store
+.AppleDouble
+._*
+.zshrc
+
+### Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+*.sublime-*
+
+### OS
+Thumbs.db
+Desktop.ini
+
+### Python (if scripts added)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+### Node (if scripts added)
+node_modules/
+*.log
+
+### Secrets / env
+.env
+.env.local
+.env.*.local
+*.pem
+credentials.*
+
+### Generated output (docs/ is instantiated from docs_template/)
+docs/
+
+### Shell
+.zsh_history
+.bash_history
+*.zwc
