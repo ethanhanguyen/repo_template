@@ -1,4 +1,4 @@
-# CLAUDE.md — {PROJECT_NAME}
+# AGENTS.md — {PROJECT_NAME}
 
 ## Plan-first rule (non-negotiable)
 

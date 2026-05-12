@@ -266,6 +266,8 @@ testing.md         → substitute {PROJECT_NAME} + all grep patterns
 
 **Special: CLAUDE-template.md** — copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`. This file enforces the **plan-first rule**: before any code change, create a PR plan doc and update progress/architecture/README first.
 
+**Special: AGENTS-template.md** — copy `docs_template/AGENTS-template.md` → `./AGENTS.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`. This file is the **harness-agnostic agent rules** for OpenCode, Cursor, Aider, Codex, and any AI coding agent that reads `AGENTS.md`. Same enforcement logic as `CLAUDE.md` but zero harness-specific assumptions.
+
 For placeholders that the user didn't provide (e.g., deploy_command when no deploy exists), write `(none)` or `<!-- TODO -->`.
 
 ### Step 6 — Verify
@@ -309,7 +311,7 @@ Created 14 files in docs/. Verified: ruff clean, mypy clean, pytest 42 passed.
 - **Never skip a phase**. Even if defaults are accepted, present them explicitly.
 - **Never invent project details**. If detection fails, ask — don't guess.
 - **Never overwrite `docs/` if it already exists**. Warn and ask.
-- **Generate root `CLAUDE.md`** from `CLAUDE-template.md` — this is the agent instruction file that enforces the plan-first rule.
+- **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md` — these are the agent instruction files that enforce the plan-first rule.
 - **Verify after generation**. If a command fails, flag it but don't block — the project may not have code yet.
 - **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus, architecture design decisions, or phase plan goals.
 - **Preserve exact formatting**. Only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.

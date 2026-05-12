@@ -6,7 +6,8 @@ AI-assisted software development workflow in a box. Point an AI at this repo, an
 
 ```
 your-project/
-├── CLAUDE.md              # Agent rules: plan-first, TDD, quality gates
+├── CLAUDE.md              # Agent rules for Claude Code: plan-first, TDD, quality gates
+├── AGENTS.md              # Harness-agnostic agent rules (OpenCode, Cursor, Aider, Codex)
 ├── docs/
 │   ├── index.md            # Docs entrypoint
 │   ├── quickstart.md       # 5-minute setup guide

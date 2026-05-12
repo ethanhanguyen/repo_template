@@ -13,12 +13,23 @@
 - ADRs: `{adr_links}`
 - Dependencies: PR#{N1}, PR#{N2}
 
-## Enforcement
+## Enforcement (non-negotiable — follow in order, never skip a gate)
 
-1. Create branch: `pr<N>-<description>`
-2. TDD: write failing tests → implement → refactor
-3. Code review: pass `docs/code-review.md` checklist locally
-4. Commit: conventional commit message, merge when ready
+1. **Create branch**: `pr<N>-<description>` from `main`
+2. **TDD**: write failing tests → implement → refactor
+3. **Quality gates** — run locally. ALL must be clean before proceeding:
+   - `{lint_cmd}` — zero warnings
+   - `{typecheck_cmd}` — zero errors
+   - `{test_cmd}` — all passing
+   - `{build_cmd}` — succeeds (if applicable)
+   - Grep `{debug_print_pattern}` — none
+   - Grep `{todo_pattern}` — addressed or tracked
+   - No secrets, tokens, or credentials in code
+4. **Code review**: pass all 4 phases of `docs/code-review.md` — zero rejection triggers fired
+5. **Commit**: conventional commit message (`feat:`, `fix:`, `docs:`, etc.)
+6. **Merge**: use the branch completion protocol only (structured merge/PR flow — never merge without it)
+
+Never claim a gate is passed without fresh verification evidence (run the command, read the output, then claim).
 
 ## Implementation
 
@@ -66,7 +77,7 @@
 - [ ] All new code has >=90% coverage
 - [ ] All new branches covered in tests
 
-## Pre-review checklist (run locally before opening PR)
+## Gate 3 — Quality gates (detailed checklist)
 
 - [ ] `{lint_cmd}` — clean
 - [ ] `{typecheck_cmd}` — clean
@@ -76,13 +87,14 @@
 - [ ] Grep for `{todo_pattern}` — addressed or tracked
 - [ ] No secrets, tokens, or credentials in code
 
-## Code review gate
+## Gate 4 — Code review
 
 - [ ] 4-phase review passed (`docs/code-review.md`)
-- [ ] No rejection triggers fired
+- [ ] No rejection triggers fired (see rejection triggers in `docs/code-review.md`)
 
-## Final
+## Git workflow (gates 5–6)
 
-- [ ] All checkboxes above ticked
-- [ ] Docs updated if needed
-- [ ] Ready to merge
+- [ ] Commit with conventional commit message
+- [ ] Merge via branch completion protocol (structured merge/PR flow)
+- [ ] All gates above passed with fresh verification
+- [ ] Docs updated if needed (architecture.md, README.md, progress.md)
