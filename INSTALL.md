@@ -185,6 +185,18 @@ Ask these questions, then derive all other defaults from the lookup tables above
 
 **Phase 2 — Tooling** (derived, confirm): `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{format_cmd}`, `{e2e_cmd}`, `{benchmark_cmd}`, `{install_command}`, `{verify_command}`, `{start_command}`, `{deploy_command}`.
 
+**Phase 2a — Harness** (detect, confirm): Check for `.claude/`, `.opencode/`, `.codex/` directories. If any exist, confirm the detected harness. If none exist, **ask the user** which AI coding harness they plan to use:
+
+```
+Which AI coding harness do you plan to use?
+  1. Claude Code — creates .claude/commands/pr.md
+  2. OpenCode   — creates .opencode/commands/pr.md
+  3. Codex      — creates .codex/commands/pr.md
+  4. None       — only creates docs/commands/pr.md (canonical copy)
+```
+
+If the user selects a harness, create the directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md` there during Step 3 generation. `docs/commands/pr.md` is always created as the canonical copy.
+
 **Phase 3 — Structure** (derived, confirm): `{config_file}`, `{module_1}`/`{module_2}`, tech stack (`{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`), env vars (parse `.env.example` if present), `{additional_tools}`.
 
 **Phase 4 — Quality** (derived, confirm): coverage thresholds (85/90/80), grep patterns (`{env_read_pattern}`, `{debug_print_pattern}`, `{todo_pattern}`, `{sleep_pattern}`, `{mock_not_called}`, `{bare_assert_true}`, `{missing_assert_in_test}`, `{test_specific_impl}`, `{env_read_in_test}`), custom `{project_rejections}`.
@@ -199,7 +211,7 @@ Ready to generate:
   Files to create: 14
   Placeholders to fill: {N}
   Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
-  
+  Harness: {claude|opencode|codex|none}
   Files will be created in: docs/ (all), ./CLAUDE.md, ./AGENTS.md, {harness}/commands/pr.md
 
 Proceed? (yes/no)
@@ -246,16 +258,16 @@ code-review.md     → substitute all commands, grep patterns, {threshold}, {pro
 testing.md         → substitute {PROJECT_NAME} + all grep patterns
 ```
 
-**Special: Harness command installation** — After generating `docs/commands/pr.md`, detect which AI coding harness the project uses and copy the command file to the harness's native commands directory. This makes `/pr` work as a native slash command:
+**Special: Harness command installation** — After generating `docs/commands/pr.md`, copy the command file to the harness's native commands directory. This makes `/pr` work as a native slash command:
 
 | Harness | Command directory | Condition |
 |---------|-------------------|-----------|
-| Claude Code | `.claude/commands/pr.md` | `.claude/` directory exists |
-| OpenCode | `.opencode/commands/pr.md` | `.opencode/` directory exists |
-| Codex | `.codex/commands/pr.md` | `.codex/` directory exists |
+| Claude Code | `.claude/commands/pr.md` | `.claude/` exists or user selected it |
+| OpenCode | `.opencode/commands/pr.md` | `.opencode/` exists or user selected it |
+| Codex | `.codex/commands/pr.md` | `.codex/` exists or user selected it |
 | Generic | `docs/commands/pr.md` | Always created (canonical copy) |
 
-If no harness directory exists and the project is new, create `docs/commands/pr.md` only. The canonical copy in `docs/commands/` works as a reference all harnesses can read.
+If no harness directory exists, **ask the user** during Phase 2a which harness they plan to use (see above). Create the harness directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md` there. If the user selects "None", create only `docs/commands/pr.md`. The canonical copy in `docs/commands/` works as a reference all harnesses can read.
 
 **Special: CLAUDE-template.md** — copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`. This file enforces the **plan-first rule**: before any code change, create a PR plan doc and update progress/architecture/README first.
 
@@ -409,6 +421,7 @@ Cleanup: removed /tmp/repo_template.
 ### Fresh install mode
 
 - **Never skip questions**. Even if defaults seem obvious, present them for confirmation.
+- **Ask about harness**: if no `.claude/`, `.opencode/`, or `.codex/` directories are detected, ask the user which harness they plan to use. Do not assume "None" silently.
 - **Never overwrite `docs/` if it already exists**. Warn and suggest switching to update mode.
 - **Wait for approval**. After deriving all defaults, present the full plan and wait for explicit user confirmation before generating files.
 
