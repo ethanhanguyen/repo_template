@@ -27,8 +27,9 @@ Trivial tasks (typos, formatting) skip step 1 but still log in progress.md.
 
 | Trigger | Action |
 |---------|--------|
-| `/pr <description>` or "create a PR" | Run full atomic PR workflow: plan → implement → quality gates → behavioral self-review → open PR → auto merge to main. See `docs_template/commands/pr.md` for the 5-phase protocol. Never skip a phase. |
-| New feature or bug fix | Create PR plan doc first, then code |
+| `/plan <description>` or "plan for" | Plan only: create spec, phase plan, PR plans, ADRs. Commit docs to main. No code. See `docs_template/commands/plan.md`. |
+| `/pr <N\|keywords>` or `/pr` or "create a PR" | Execute one planned PR. Requires prior `/plan`. `/pr` alone picks next in queue. See `docs_template/commands/pr.md` for the 4-phase protocol. Never skip a phase. |
+| New feature or bug fix | Run `/plan` first, then `/pr` |
 | Quick PR (no plan doc needed) | Trivial changes only: typos, formatting, one-liners. Still run quality gates. |
 
 ## Quality gates

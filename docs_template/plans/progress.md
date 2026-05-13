@@ -14,6 +14,8 @@ Phase 0 (Foundation) → Phase 1 (Core) → Phase 2 (Production) → Phase 3 (Po
 |----|-------|-------------|--------|----------|------|
 | — | — | — | — | —% | — |
 
+Statuses: `📋 Planned` → `🚧 In Progress` → `✅ Merged` | `⬜ Backlog`
+
 ## Quality snapshot
 
 | Metric | Current | Target |

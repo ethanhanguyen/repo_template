@@ -10,12 +10,13 @@
 
 | Task | Action |
 |---|---|
+| Planning a feature | Run `/plan <description>` — creates spec + PR plans, commits to main |
 | Implementing a PR | Read the PR plan doc → grep `src/` for module names mentioned |
 | Debugging | Grep for module name in `docs/archive/learnings.md` |
 | Writing tests | Read `docs/testing.md` first |
 | Architecture | Read `docs/architecture.md` (stable — read once, not every session) |
 | Code review | Run `bash scripts/check.sh` + behavioral self-review (see Quality Gates) |
-| New feature / bug fix | Create PR plan doc first, then code |
+| New feature or bug fix | Run `/plan` first, then `/pr` |
 
 ## Context protocol
 
