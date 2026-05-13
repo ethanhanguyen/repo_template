@@ -276,7 +276,7 @@ Write each approved deliverable using the template structures:
 1. `git add docs/`
 2. `git commit -m "docs: plan {slug} — spec, phase{N} plan, {N} PRs"`
 3. `git push origin main`
-4. Update `docs/plans/plan-state-{slug}.md`: `current_step: committed`
+4. Delete `docs/plans/plan-state-{slug}.md` (plan committed, state file no longer needed)
 5. Report: plan doc paths, PRs created (numbers + descriptions), branch `main`, next step: `/pr <N|keywords>`
 
 ---USER-DESCRIPTION---
