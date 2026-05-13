@@ -15,7 +15,7 @@ Also trigger on "plan for <description>" or "create a plan for <description>" (v
 
 ## Session resume (DO THIS FIRST EVERY TURN)
 
-1. Glob `docs/plans/plan-state-*.md`
+1. Glob `/tmp/plan-state-*.md`
 2. If **1 matching file** → read it, confirm: "Resuming plan: {slug} (Step {current_step})"
    - If `current_step` is `committed` → tell user: "Plan already committed. Use /pr to implement."
    - Else → jump to that step (skip earlier approved steps)
@@ -34,13 +34,13 @@ Create a todo list:
 
 # Phase A — Discuss & Draft
 
-> **NO plan docs written to `docs/specs/`, `docs/plans/PR*.md`, or `docs/decisions/` during this phase.** Only discuss verbally. The `plan-state-{slug}.md` tracking file is the exception — write it immediately in A0.
+> **NO plan docs written to `docs/specs/`, `docs/plans/PR*.md`, or `docs/decisions/` during this phase.** Only discuss verbally. The tracking file lives in `/tmp` (never committed).
 
 ## Step A0 — Initialize plan state
 
 1. Derive `slug`: lowercase `<description>`, replace spaces with hyphens, strip special chars, max 40 chars.
 2. Read `docs_template/plans/plan-state-template.md` for structure.
-3. Create `docs/plans/plan-state-{slug}.md` with:
+3. Create `/tmp/plan-state-{slug}.md` with:
    - `slug`, `original_description`, `complexity_tier: unset`
    - `current_step: A1`
    - Empty `approvals` table, empty `change_log`
@@ -276,7 +276,7 @@ Write each approved deliverable using the template structures:
 1. `git add docs/`
 2. `git commit -m "docs: plan {slug} — spec, phase{N} plan, {N} PRs"`
 3. `git push origin main`
-4. Delete `docs/plans/plan-state-{slug}.md` (plan committed, state file no longer needed)
+4. Delete `/tmp/plan-state-{slug}.md` (plan committed, state file no longer needed)
 5. Report: plan doc paths, PRs created (numbers + descriptions), branch `main`, next step: `/pr <N|keywords>`
 
 ---USER-DESCRIPTION---
