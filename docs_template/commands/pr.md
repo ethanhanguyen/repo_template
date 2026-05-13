@@ -84,7 +84,10 @@ Update status as each phase completes. If any phase reveals follow-up tasks, add
 3. Push `main` to remote
 4. While on `main`, update progress docs and commit them:
    - Update `docs/plans/progress.md` — mark PR row status `✅ Merged`
-   - Update `docs/navigation.md` **Current focus** — set `PR/Task` to the next pending PR (or `idle` if none), `Phase` to `—`, `Branch` to `main`
+   - Update `docs/navigation.md`:
+     - Set **Current focus** to next pending PR (or `idle` if none), `Phase` → `—`, `Branch` → `main`
+     - **Scout corrections** — add any gotchas discovered during this PR (e.g. "When adding X, grep for Y first", "Classes in module Z use pattern W").
+     - **Task map** — update if this PR added or changed any workflows
    - `git add docs/` && `git commit -m "docs: mark PR{N} merged"` && `git push`
 5. Report: branch name, files changed, tests added, gates passed, merged ✓
 
