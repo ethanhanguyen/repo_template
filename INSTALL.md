@@ -72,11 +72,10 @@ Before any other work, the AI scans the target project directory:
 | `{package_manager}` / `{install_command}` | quickstart, contributing | Platform |
 | `{verify_command}` | quickstart, contributing | Platform |
 | `{start_command}` | quickstart | Platform |
-| `{lint_cmd}` / `{lint_command}` | code-review, PR-template, PR-prompt, phase-plan, quickstart, commands/pr | Tooling |
-| `{typecheck_cmd}` / `{typecheck_command}` | code-review, PR-template, PR-prompt, quickstart, commands/pr | Tooling |
-| `{test_cmd}` / `{test_command}` | code-review, PR-template, PR-prompt, contributing, phase-plan, commands/pr | Tooling |
-| `{test_cmd_single}` | contributing | Tooling |
-| `{build_cmd}` / `{build_command}` | code-review, PR-template, quickstart, commands/pr | Tooling |
+| `{lint_cmd}` / `{lint_command}` | code-review, PR-template, PR-prompt, phase-plan, quickstart | Tooling |
+| `{typecheck_cmd}` / `{typecheck_command}` | code-review, PR-template, PR-prompt, quickstart | Tooling |
+| `{test_cmd}` / `{test_command}` | code-review, PR-template, PR-prompt, contributing, phase-plan | Tooling |
+| `{build_cmd}` / `{build_command}` | code-review, PR-template, quickstart | Tooling |
 | `{e2e_cmd}` | code-review, phase-plan | Tooling |
 | `{benchmark_cmd}` | code-review | Tooling |
 | `{format_cmd}` | (not in templates but useful) | Tooling |
@@ -91,8 +90,8 @@ Before any other work, the AI scans the target project directory:
 | `{cache}` / `{storage}` / `{queue}` | architecture | Stack |
 | `{monitoring}` / `{cicd}` / `{hosting}` | architecture | Stack |
 | `{env_read_pattern}` | code-review, check.sh | Grep guard |
-| `{debug_print_pattern}` | code-review, PR-template, commands/pr, check.sh | Grep guard |
-| `{todo_pattern}` | code-review, PR-template, commands/pr, check.sh | Grep guard |
+| `{debug_print_pattern}` | code-review, PR-template, check.sh | Grep guard |
+| `{todo_pattern}` | code-review, PR-template, check.sh | Grep guard |
 | `{source_include}` | check.sh | Grep guard |
 | `{config_dir}` | check.sh | Grep guard |
 | `{sleep_pattern}` | testing | Grep guard |
@@ -334,7 +333,7 @@ Only regenerate files that differ from the template source. Use a content-based 
 | `scripts/check.sh` | **Re-substitute**: regenerate from `docs_template/scripts/check.sh` with current tooling values (`{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`). |
 | `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
 | Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate from `CLAUDE-template.md` / `AGENTS-template.md` with current tooling values. Preserve any custom task routing the user may have added — warn if template changed and list conflicts. |
-| Harness command files (`.claude/commands/pr.md`, `.claude/commands/plan.md`, `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.codex/commands/pr.md`, `.codex/commands/plan.md`) | **Regenerate if harness dir exists**: copy from updated `commands/pr.md` and `commands/plan.md`. **If no harness dir exists**: create only `docs/commands/pr.md` and `docs/commands/plan.md` (canonical). Include a harness note in the approval summary so the user can request a specific harness if desired. |
+| Harness command files (`.claude/commands/pr.md`, `.claude/commands/plan.md`, `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.codex/commands/pr.md`, `.codex/commands/plan.md`) | **Compare then copy if harness dir exists**: compare each harness copy against the template source (`/tmp/repo_template/docs_template/commands/pr.md` and `plan.md`). If content is identical, skip. If different (or missing in harness dir), copy from the template source. **If no harness dir exists**: no action (skip; canonical copies in `docs/commands/` are not created in update mode — they are fresh-install only). Include a harness note in the approval summary so the user can request a specific harness if desired. |
 
 ### Update protocol steps
 
@@ -348,7 +347,7 @@ Only regenerate files that differ from the template source. Use a content-based 
      Runtime content preserved: 3 ADRs, 2 specs, 14 learnings, 2 phase plans
      Files being regenerated: 5
      Files untouched: 8
-      Harness: none detected → docs/commands/ (canonical). Reply with "claude", "opencode", or "codex" to add harness support.
+      Harness: none detected. Reply with "claude", "opencode", or "codex" to add harness support.
     
     Proceed? (yes/no)
     ```
@@ -361,7 +360,7 @@ Only regenerate files that differ from the template source. Use a content-based 
  
  - **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions).
  - **Never ask standalone questions**. Everything is auto-detected. If detection fails on a required field, leave the placeholder with `<!-- TODO -->` and mention it in the summary.
- - **Harness exception**: harness preference cannot be auto-detected. Always include a harness line in the approval summary: if dirs exist, confirm; if not, note that canonical copies will be created and tell the user they can reply with a harness name to add support. This is a summary note, not a separate question — the user sees it during the approval gate and can act on it.
+ - **Harness exception**: harness preference cannot be auto-detected. Always include a harness line in the approval summary: if dirs exist, confirm harness; compare content of each command file (`pr.md`, `plan.md`) against the template source. If content is identical, note "unchanged; skipped". If different, note "will update from template". If no harness dirs exist, note that the user can reply with a harness name to add support. This is a summary note, not a separate question — the user sees it during the approval gate and can act on it.
  - **Never delete user-created files** in `docs/` that don't correspond to a template.
  - **Warn before overwriting** any file the user has modified from its template-original form (if the diff is non-trivial).
  - **Preserve custom grep patterns** the user may have added to `code-review.md` or `scripts/check.sh`.
@@ -412,7 +411,7 @@ Only regenerate files that differ from the template source. Use a content-based 
  Update summary:
    Regenerating: 1 file (quickstart.md)
    Preserving: 13 files (all runtime content + unchanged templates)
-   Harness: .claude/ → regenerating pr.md, plan.md
+    Harness: .claude/ → compared: pr.md unchanged, plan.md unchanged (skipped)
  
  Applying changes...
    1 file updated. Verified: ruff clean, mypy clean, pytest 42 passed.
@@ -421,7 +420,7 @@ Only regenerate files that differ from the template source. Use a content-based 
  
  When no harness dirs exist, the summary includes:
  ```
-   Harness: none detected → docs/commands/ (canonical). Reply with "claude", "opencode", or "codex" to add harness support.
+    Harness: none detected. Reply with "claude", "opencode", or "codex" to add harness support.
  ```
 
 ---
