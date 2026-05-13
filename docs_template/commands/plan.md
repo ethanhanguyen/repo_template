@@ -39,7 +39,7 @@ Create a todo list:
 ## Step A0 — Initialize plan state
 
 1. Derive `slug`: lowercase `<description>`, replace spaces with hyphens, strip special chars, max 40 chars.
-2. Read `docs_template/plans/plan-state-template.md` for structure.
+2. Read `docs/plans/plan-state-template.md` for structure.
 3. Create `/tmp/plan-state-{slug}.md` with:
    - `slug`, `original_description`, `complexity_tier: unset`
    - `current_step: A1`
