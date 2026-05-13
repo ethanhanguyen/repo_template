@@ -20,7 +20,7 @@ Before any work, create a todo list with these items (mark the top one `in_progr
 2. Phase 2 — Document (progress, nav, ADR, arch, README)
 3. Phase 3 — Implement (TDD per component)
 4. Phase 4 — Quality gates + behavioral self-review
-5. Phase 5 — Commit & push (do NOT open PR)
+5. Phase 5 — Commit, push & merge to main
 
 Update status as each phase completes. If any phase reveals follow-up tasks, add them.
 
@@ -77,14 +77,15 @@ Update status as each phase completes. If any phase reveals follow-up tasks, add
 
 ---
 
-## Phase 5 — Commit & push (do NOT open PR)
+## Phase 5 — Commit, push & merge to main
 
 1. Commit (conventional commit) and push all code changes
-2. **Do NOT open PR** — auto merge is handled by the next step in the pipeline
-3. Update `docs/plans/progress.md` — mark PR row status (✅ Done or ✅ Merged)
-4. Update `docs/navigation.md` — clear **Current focus**
-5. **Commit & push** all final doc updates
-6. Report: branch name, files changed, tests added, gates passed, pushed ✓
+2. Merge the branch into `main` (fast-forward if possible, otherwise merge commit)
+3. Push `main` to remote
+4. Update `docs/plans/progress.md` — mark PR row status `✅ Merged`
+5. Update `docs/navigation.md` — clear **Current focus**
+6. **Commit & push** all final doc updates (on `main` or the branch, whichever is active)
+7. Report: branch name, files changed, tests added, gates passed, merged ✓
 
 *→ Mark Phase 5 todo complete*
 

@@ -18,7 +18,7 @@
 | Goal | How |
 |------|-----|
 | Implement a PR | Follow `docs/PR-template.md` enforcement gates (quality gates → code review → commit → auto merge) |
-| Run full atomic PR | Use `/pr <description>` command — plan → implement → gates → code review → PR → auto merge |
+| Run full atomic PR | Use `/pr <description>` command — plan → implement → gates → code review → merge to main |
 | Debug / fix a bug | Run tests first, grep root cause |
 | Write tests | Follow `docs/testing.md` authoring guide |
 | Architecture / design decision | Write an ADR in `docs/decisions/` |

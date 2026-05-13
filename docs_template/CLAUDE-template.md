@@ -35,7 +35,7 @@ For trivial tasks (typo fix, formatting, one-line change), skip the PR plan but 
 
 | Trigger | Action |
 |---------|--------|
-| `/pr <description>` or "create a PR" | Run full atomic PR workflow: plan → implement → quality gates → behavioral self-review → open PR → auto merge to main. See `docs/commands/pr.md` for the 5-phase protocol. Never skip a phase. |
+| `/pr <description>` or "create a PR" | Run full atomic PR workflow: plan → implement → quality gates → behavioral self-review → commit, push & merge to main. See `docs/commands/pr.md` for the 5-phase protocol. Never skip a phase. |
 | New feature or bug fix | Create PR plan doc first, then code |
 | Quick PR (no plan doc needed) | Trivial changes only: typos, formatting, one-liners. Still run quality gates. |
 | Debug / investigate | Run tests to reproduce, grep for root cause |
