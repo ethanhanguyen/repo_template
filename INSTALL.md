@@ -103,7 +103,7 @@ Before any other work, the AI scans the target project directory:
 
 ### Runtime (filled by developers during daily use — NOT by this script)
 
-Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `archive/learnings.md`, `commands/pr.md`, `commands/plan.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's task map, always-verify list, scout corrections, and commands' workflow instructions are also runtime — left with placeholder hints intact.
+Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `plans/plan-state-template.md`, `archive/learnings.md`, `commands/pr.md`, `commands/plan.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's task map, always-verify list, scout corrections, and commands' workflow instructions are also runtime — left with placeholder hints intact.
 
 ---
 
@@ -244,6 +244,7 @@ For **runtime-only templates**, copy them as-is (their placeholders are filled b
 decisions/YYYY-MM-DD-decision-template.md
 archive/learnings.md
 specs/spec-template.md
+plans/plan-state-template.md
 PR-template.md
 commands/pr.md
 commands/plan.md
@@ -328,7 +329,7 @@ Only regenerate files that differ from the template source. Use a content-based 
 | `index.md`, `quickstart.md`, `contributing.md`, `code-review.md`, `testing.md` | **Re-substitute**: re-derive all setup-time placeholders from current repo state. Apply to a fresh copy from the template. Overwrite the generated file. |
 | `architecture.md` | **Partial re-substitute**: update `{PROJECT_NAME}` + tech stack table. Preserve `{system_overview}`, `{data_flow_diagram}`, module boundaries, and design decisions — these are runtime content filled by developers. |
 | `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve all scout corrections, task map, and always-verify list. |
-| `PR-template.md`, `commands/pr.md`, `commands/plan.md` | **Runtime only** (copied as-is from template if missing). These files no longer contain setup-time placeholders. |
+| `PR-template.md`, `commands/pr.md`, `commands/plan.md`, `plans/plan-state-template.md` | **Runtime only** (copied as-is from template if missing). These files no longer contain setup-time placeholders. |
 | `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{threshold}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
 | `scripts/check.sh` | **Re-substitute**: regenerate from `docs_template/scripts/check.sh` with current tooling values (`{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`). |
 | `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
