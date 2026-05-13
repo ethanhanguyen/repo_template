@@ -82,10 +82,11 @@ Update status as each phase completes. If any phase reveals follow-up tasks, add
 1. Commit (conventional commit) and push all code changes
 2. Merge the branch into `main` (fast-forward if possible, otherwise merge commit)
 3. Push `main` to remote
-4. Update `docs/plans/progress.md` — mark PR row status `✅ Merged`
-5. Update `docs/navigation.md` — clear **Current focus**
-6. **Commit & push** all final doc updates (on `main` or the branch, whichever is active)
-7. Report: branch name, files changed, tests added, gates passed, merged ✓
+4. While on `main`, update progress docs and commit them:
+   - Update `docs/plans/progress.md` — mark PR row status `✅ Merged`
+   - Update `docs/navigation.md` — clear **Current focus**
+   - `git add docs/` && `git commit -m "docs: mark PR{N} merged"` && `git push`
+5. Report: branch name, files changed, tests added, gates passed, merged ✓
 
 *→ Mark Phase 5 todo complete*
 
