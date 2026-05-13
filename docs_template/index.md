@@ -8,7 +8,7 @@ Docs entrypoint. Start here every session.
 - [Architecture](./architecture.md) — System design and module boundaries
 - [Contributing](./contributing.md) — Setup, conventions, PR workflow
 - [Code Review](./code-review.md) — Automated gates + behavioral self-review
-- [PR Template](./PR-template.md) — Canonical PR workflow
+- [PR Template](./PR-template.md) — PR fill-in template
 - [Testing](./testing.md) — Test authoring guide and anti-patterns
 
 ## Current specs

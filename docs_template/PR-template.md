@@ -13,16 +13,7 @@
 - ADRs: `{adr_links}`
 - Dependencies: PR#{N1}, PR#{N2}
 
-## Enforcement (non-negotiable — follow in order, never skip a gate)
-
-1. **Create branch**: `pr<N>-<description>` from `main`
-2. **TDD**: write failing tests → implement → refactor
-3. **Quality gates**: `bash scripts/check.sh` — all passing
-4. **Behavioral self-review**: self-check against Quality Gates in `AGENTS.md` (Surgical, Explicit, Minimal, Conventions, Covered, Secure)
-5. **Commit**: conventional commit message (`feat:`, `fix:`, `docs:`, etc.)
-6. **Auto merge to main**: `gh pr merge --auto --squash` (or manual `gh pr merge --squash`), then delete feature branch
-
-Never claim a gate is passed without fresh verification evidence (run the command, read the output, then claim).
+> **Enforcement**: Follow the 5-phase atomic workflow in `docs/commands/pr.md`. After each phase, show fresh verification evidence before claiming pass.
 
 ## Implementation
 
@@ -70,18 +61,3 @@ Never claim a gate is passed without fresh verification evidence (run the comman
 - [ ] All new code has >=90% coverage
 - [ ] All new branches covered in tests
 
-## Gate 3 — Quality gates
-
-- [ ] `bash scripts/check.sh` — all passing
-
-## Gate 4 — Behavioral self-review
-
-- [ ] Self-check against Quality Gates in `AGENTS.md` (Surgical, Explicit, Minimal, Conventions, Covered, Secure)
-
-## Git workflow (gates 5–6)
-
-- [ ] Commit with conventional commit message
-- [ ] Auto merge to main (`gh pr merge --auto --squash` or manual `gh pr merge --squash`)
-- [ ] Delete feature branch after merge
-- [ ] All gates above passed with fresh verification
-- [ ] Docs updated if needed (architecture.md, README.md, progress.md)

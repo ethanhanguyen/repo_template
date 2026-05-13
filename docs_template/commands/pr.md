@@ -37,7 +37,7 @@ Update status as each phase completes. If any phase reveals follow-up tasks, add
      - Ambiguous (multiple rows match) → show matches, ask user which one.
    - **No match**: find the highest roadmapped PR number in the table (max of `PR0`, `PR1`, ...), then use that number + 1. Example: if table has PR0–PR6, the next is PR7. If table is empty, start at PR0.
 4. Derive slug: lowercase `<description>`, replace spaces with hyphens, strip special chars, max 40 chars
-5. Create `docs/plans/PR{N}-{slug}.md` — fill all sections
+5. Create `docs/plans/PR{N}-{slug}.md` using `docs/PR-template.md` structure — fill all sections
 6. Check `docs/navigation.md` **Current focus** — set to this PR and key files
 
 *→ Mark Phase 1 todo complete, mark Phase 2 in_progress*

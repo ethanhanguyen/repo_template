@@ -134,7 +134,7 @@ your-project/
 │   ├── contributing.md     # Setup, conventions, PR workflow
 │   ├── code-review.md      # 4-phase review checklist with auto-reject triggers
 │   ├── testing.md          # Testing guide, anti-pattern catalog, coverage targets
-│   ├── PR-template.md      # Canonical PR workflow with enforcement gates
+│   ├── PR-template.md      # PR fill-in template
 │   ├── navigation.md       # Session protocol, task map, scout corrections
 │   ├── archive/
 │   │   └── learnings.md    # Accumulated project knowledge

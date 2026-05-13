@@ -8,7 +8,7 @@ For every feature or bug fix, before writing any code:
 2. Update `docs_template/plans/progress.md`
 3. Update `docs_template/architecture.md` if applicable
 4. Update `README.md` if applicable
-5. Write code, then follow the enforcement flow in `docs_template/PR-template.md` (check.sh → behavioral self-review → commit → auto merge)
+5. Write code, then follow the enforcement flow in `docs_template/commands/pr.md` (check.sh → behavioral self-review → commit → auto merge)
 
 Trivial tasks (typos, formatting) skip step 1 but still log in progress.md.
 
@@ -46,4 +46,4 @@ Trivial tasks (typos, formatting) skip step 1 but still log in progress.md.
 
 - Verify template consistency: grep for `{PLACEHOLDER}` across all templates, ensure catalog in INSTALL.md is accurate
 - Test generation: run INSTALL.md protocol against a dummy project to verify output
-- Post-coding: follow enforcement flow in `docs_template/PR-template.md` gates 3–6 in order (check.sh → behavioral self-review → commit → auto merge)
+- Post-coding: follow enforcement flow in `docs_template/commands/pr.md` gates 3–6 in order (check.sh → behavioral self-review → commit → auto merge)

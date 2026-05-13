@@ -8,7 +8,7 @@ For **every feature or bug fix**, before writing any code:
 2. **Update `docs/plans/progress.md`** — add PR to table
 3. **Update `docs/architecture.md`** if this changes module boundaries, data flow, or tech stack
 4. **Update `README.md`** if this changes setup, usage, or public API
-5. Write code, then follow the enforcement flow in `docs/PR-template.md` (check.sh → behavioral self-review → commit → auto merge)
+5. Write code, then follow the enforcement flow in `docs/commands/pr.md` (check.sh → behavioral self-review → commit → auto merge)
 
 For trivial tasks (typo fix, formatting, one-line change), skip the PR plan but still log in progress.md.
 
@@ -42,7 +42,7 @@ For trivial tasks (typo fix, formatting, one-line change), skip the PR plan but 
 | Architecture decision | Write ADR in `docs/decisions/YYYY-MM-DD-{title}.md` |
 | Code review | Run `bash scripts/check.sh` + behavioral self-review (see Quality Gates below) |
 | Writing tests | Follow `docs/testing.md` authoring guide |
-| Implementation done | Follow `docs/PR-template.md` enforcement gates in order (quality gates → code review → commit → auto merge — never skip) |
+| Implementation done | Follow `docs/commands/pr.md` enforcement protocol in order (quality gates → code review → commit → auto merge — never skip) |
 | Phase complete | Run `bash scripts/check.sh`, update progress |
 
 ## Quality Gates (self-check every PR before claiming done)
