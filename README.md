@@ -2,6 +2,125 @@
 
 AI-assisted software development workflow in a box. Copy a single file, point an AI at it, and get your project's entire docs infrastructure — templates, quality gates, tracking dashboards, and agent rules — customized to your stack.
 
+## Why
+
+**AI coding tools are fast. Fast without structure is chaos.**
+
+Most AI-assisted projects hit the same wall: the agent produces code quickly, but after a few sessions you lose track of *what was changed*, *why decisions were made*, and *whether anything is actually tested*. Bugs creep in. Context evaporates. Velocity collapses.
+
+This repo gives you the missing layer: **AI-native project infrastructure** that enforces plan-first discipline, automated quality gates, and a living paper trail — without slowing you down.
+
+| Pain | Fix |
+|------|-----|
+| Agent rewrites things you didn't ask for | `check.sh` grep guards catch debug prints, secrets, TODO cruft |
+| No one knows why that architecture choice was made | ADRs auto-generated per decision; linked from progress.md |
+| Tests? What tests? | TDD enforced per PR; coverage tracked in progress.md |
+| "What happened last session?" | `learnings.md` + `navigation.md` capture every session's key insights |
+| PRs drift off-spec | Plan doc created *before* code; behavioral self-review catches scope creep |
+| Setting up from scratch is painful | One file (`INSTALL.md`), one sentence — AI auto-detects your stack and generates everything |
+
+**One file. One sentence. Full infrastructure.** No config files to manage. No manual template wrangling. The AI reads your existing `package.json` / `pyproject.toml` / `Cargo.toml` and derives language-specific lint, typecheck, test, and build commands automatically.
+
+## Workflow
+
+### End-to-end overview
+
+```mermaid
+flowchart LR
+    %%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px' }}}%%
+    A["📄 Copy INSTALL.md"] --> B["🤖 AI auto-detects stack"]
+    B --> C["📋 Plan presented for approval"]
+    C --> D["📁 docs/ generated"]
+    D --> E["🔄 PR pipeline ready"]
+
+    style A fill:#4f46e5,stroke:#3730a3,color:#fff
+    style B fill:#7c3aed,stroke:#6d28d9,color:#fff
+    style C fill:#2563eb,stroke:#1d4ed8,color:#fff
+    style D fill:#0891b2,stroke:#0e7490,color:#fff
+    style E fill:#059669,stroke:#047857,color:#fff
+```
+
+### Atomic PR pipeline (every change runs through this)
+
+```mermaid
+flowchart TD
+    %%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '13px', 'fontFamily': 'monospace' }}}%%
+
+    start(["<b>/pr description</b>"]) --> p1
+
+    subgraph p1["<b>① PLAN</b>"]
+        direction LR
+        p1a["Read PR-prompt-template"] --> p1b["Check navigation.md"]
+        p1b --> p1c["Create plan doc"]
+    end
+
+    p1 --> p2
+
+    subgraph p2["<b>② DOCUMENT</b>"]
+        direction LR
+        p2a["Update progress.md"] --> p2b["Write ADR if needed"]
+        p2b --> p2c["Update architecture.md"]
+        p2c --> p2d["Commit docs"]
+    end
+
+    p2 --> p3
+
+    subgraph p3["<b>③ IMPLEMENT</b>"]
+        direction LR
+        p3a["RED<br>failing test"] --> p3b["GREEN<br>minimal code"] --> p3c["REFACTOR<br>clean up"]
+    end
+
+    p3 --> p4
+
+    subgraph p4["<b>④ QUALITY GATES</b>"]
+        p4a["bash scripts/check.sh"] --> p4b{"Pass?"}
+        p4b -->|"fail"| p4a
+        p4b -->|"pass"| p4c["Behavioral self-review"]
+    end
+
+    p4 --> p5
+
+    subgraph p5["<b>⑤ SHIP</b>"]
+        direction LR
+        p5a["Conventional commit"] --> p5b["Push to remote"]
+        p5b --> p5c["Update progress.md"]
+        p5c --> p5d["Clear navigation focus"]
+    end
+
+    p5 --> done(["<b>✓ merged to main</b>"])
+
+    %% Phase colors
+    style p1 fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e40af
+    style p2 fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#92400e
+    style p3 fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46
+    style p4 fill:#fef2f2,stroke:#ef4444,stroke-width:2px,color:#991b1b
+    style p5 fill:#f5f3ff,stroke:#8b5cf6,stroke-width:2px,color:#5b21b6
+    style start fill:#1e293b,stroke:#0f172a,color:#f1f5f9
+    style done fill:#065f46,stroke:#064e3b,color:#d1fae5
+    style p4b fill:#fef2f2,stroke:#ef4444,color:#991b1b
+```
+
+### Quality gates detail
+
+```
+  scripts/check.sh ──►  lint ──►  typecheck ──►  test + coverage ──►  build
+                              │
+                              ▼
+              grep guards:  debug prints  ·  raw env reads  ·  secrets  ·  TODOs
+```
+
+### What happens at each phase
+
+| Phase | Goal | Output |
+|-------|------|--------|
+| **Plan** | Define the change before writing code | `docs/plans/PR{N}-{slug}.md` |
+| **Document** | Connect the PR to project context | Updated progress, navigation, ADRs, architecture |
+| **Implement** | Build with TDD discipline | RED → GREEN → REFACTOR per component |
+| **Quality** | Automated gates + behavioral self-review | All gates green or back to implement |
+| **Ship** | Get it into main | Squash merge, branch deleted, docs finalized |
+
+**Language-agnostic**: `scripts/check.sh` auto-configures per stack — lint, typecheck, test+coverage, build, grep guards. 13 languages supported.
+
 ## What you get
 
 ```
