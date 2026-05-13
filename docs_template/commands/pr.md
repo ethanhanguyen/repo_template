@@ -12,6 +12,18 @@ Also trigger on "create a PR for <description>" (verbatim match in user message)
 - **Evidence before claims**: show fresh command output for every gate.
 - **Fail fast**: if a gate fails, fix before continuing.
 
+## Progress tracking
+
+Before any work, create a todo list with these items (mark the top one `in_progress`):
+
+1. Phase 1 — Plan (PR number, plan doc)
+2. Phase 2 — Document (progress, nav, ADR, arch, README)
+3. Phase 3 — Implement (TDD per component)
+4. Phase 4 — Quality gates + behavioral self-review
+5. Phase 5 — Commit & push (do NOT open PR)
+
+Update status as each phase completes. If any phase reveals follow-up tasks, add them.
+
 ---
 
 ## Phase 1 — Plan (resolve PR number from description)
@@ -28,34 +40,52 @@ Also trigger on "create a PR for <description>" (verbatim match in user message)
 5. Create `docs/plans/PR{N}-{slug}.md` — fill all sections
 6. Check `docs/navigation.md` **Current focus** section for active PR; clear it if it points to a different PR
 
+*→ Mark Phase 1 todo complete, mark Phase 2 in_progress*
+
+---
+
 ## Phase 2 — Document
 
-7. Update `docs/plans/progress.md` — add PR row to **PR Status** table (or update existing Backlog row status to `🚧 In Progress`)
-8. Update `docs/navigation.md` — set **Current focus** to this PR
-9. **ADR**: if this is a significant architectural change, write `docs/decisions/YYYY-MM-DD-{title}.md`
-10. Update `docs/architecture.md` — if module boundaries, data flow, or tech stack changes
-11. Update `README.md` — if setup or usage changes
-12. **Commit & push** all doc updates before implementation
+1. Update `docs/plans/progress.md` — add PR row to **PR Status** table (or update existing Backlog row status to `🚧 In Progress`)
+2. Update `docs/navigation.md` — set **Current focus** to this PR
+3. **ADR**: if this is a significant architectural change, write `docs/decisions/YYYY-MM-DD-{title}.md`
+4. Update `docs/architecture.md` — if module boundaries, data flow, or tech stack changes
+5. Update `README.md` — if setup or usage changes
+6. **Commit & push** all doc updates before implementation
+
+*→ Mark Phase 2 todo complete, mark Phase 3 in_progress*
+
+---
 
 ## Phase 3 — Implement
 
-13. TDD per component: RED → GREEN → REFACTOR
-14. Match existing conventions, handle errors at external boundaries
-15. See plan doc (`docs/plans/PR{N}-{slug}.md`) for per-component constraints and error handling
+1. TDD per component: RED → GREEN → REFACTOR
+2. Match existing conventions, handle errors at external boundaries
+3. See plan doc (`docs/plans/PR{N}-{slug}.md`) for per-component constraints and error handling
+
+*→ Mark Phase 3 todo complete, mark Phase 4 in_progress*
+
+---
 
 ## Phase 4 — Quality gates + behavioral self-review
 
-16. Run `bash scripts/check.sh` — all gates must pass
-17. Self-review against Quality Gates in `AGENTS.md` (Surgical, Explicit, Minimal, Conventions, Covered, Secure)
-18. Fix any failures before proceeding
+1. Run `bash scripts/check.sh` — all gates must pass
+2. Self-review against Quality Gates in `AGENTS.md` (Surgical, Explicit, Minimal, Conventions, Covered, Secure)
+3. Fix any failures before proceeding
+
+*→ Mark Phase 4 todo complete, mark Phase 5 in_progress*
+
+---
 
 ## Phase 5 — Commit & push (do NOT open PR)
 
-19. Commit (conventional commit) and push all code changes
-20. **Do NOT open PR** — auto merge is handled by the next step in the pipeline
-21. Update `docs/plans/progress.md` — mark PR row status (✅ Done or ✅ Merged)
-22. Update `docs/navigation.md` — clear **Current focus**
-23. **Commit & push** all final doc updates
-24. Report: branch name, files changed, tests added, gates passed, pushed ✓
+1. Commit (conventional commit) and push all code changes
+2. **Do NOT open PR** — auto merge is handled by the next step in the pipeline
+3. Update `docs/plans/progress.md` — mark PR row status (✅ Done or ✅ Merged)
+4. Update `docs/navigation.md` — clear **Current focus**
+5. **Commit & push** all final doc updates
+6. Report: branch name, files changed, tests added, gates passed, pushed ✓
+
+*→ Mark Phase 5 todo complete*
 
 ---USER-DESCRIPTION---
