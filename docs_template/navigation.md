@@ -1,48 +1,56 @@
-# Navigation
-
-## Session start
-
-1. Read `docs/index.md` → update `Current focus` section below
-2. Run any project-warmup commands (e.g. `source venv/bin/activate`, `npm install`)
-3. Check recent `docs/archive/learnings.md` for gotchas
+# Navigation — read on session start
 
 ## Current focus
 
-<!-- Update this section at the start of every session -->
-> **PR / Task**: {what are you working on?}
-> **Phase**: {phase number/name}
-> **Branch**: {branch name}
+<!-- UPDATE per session -->
+- PR / Task: {what are you working on?}
+- Key files: {files most relevant to current task}
 
 ## Task map
 
-| Goal | How |
-|------|-----|
-| Implement a PR | Follow `docs/PR-template.md` enforcement gates (quality gates → code review → commit → auto merge) |
-| Run full atomic PR | Use `/pr <description>` command — plan → implement → gates → code review → merge to main |
-| Debug / fix a bug | Run tests first, grep root cause |
-| Write tests | Follow `docs/testing.md` authoring guide |
-| Architecture / design decision | Write an ADR in `docs/decisions/` |
-| Code review | Run `bash scripts/check.sh` + behavioral self-review |
+| Task | Action |
+|---|---|
+| Implementing a PR | Read the PR plan doc → grep `src/` for module names mentioned |
+| Debugging | Grep for module name in `docs/archive/learnings.md` |
+| Writing tests | Read `docs/testing.md` first |
+| Architecture | Read `docs/architecture.md` (stable — read once, not every session) |
+| Code review | Run `bash scripts/check.sh` + behavioral self-review (see Quality Gates) |
+| New feature / bug fix | Create PR plan doc first, then code |
 
 ## Context protocol
 
-- **Search first**: grep/glob before reading whole files
-- **Never ls whole directories** — use glob patterns instead
-- **Read neighboring files** before writing new code — match conventions
-- **Check archive/learnings.md** before repeating past work
+- Never `ls` or `read` whole directories — grep for symbol/function names first
+- Only read full spec/docs files when the task explicitly links to them
+- `docs/architecture.md` is stable reference — read once, not every session
+- Read neighboring files before writing new code — match conventions
+
+## Always verify
+
+<!-- Project-specific checklist. Add to this during development. -->
+- No secrets, tokens, or credentials in diff
+- No `print()` / `console.log()` / `dbg!()` left in code
+- Run `bash scripts/check.sh` — all gates pass
+- Grep for `{PLACEHOLDER}` across templates before shipping
 
 ## Scout corrections
 
-<!-- Add project-specific "gotchas" discovered during development -->
-<!-- Format: "When doing X, grep for Y before Z" -->
-<!-- Example: -->
-<!-- |#|Rule|Why|
-   |1|Run `{lint_cmd}` before committing|Catches type errors CI would reject|
-   |2|Grep for `{pattern}` before adding new `{thing}`|Avoids duplication|
+<!-- Ranked by tokens_saved descending. Max 7. Purge bottom when full. -->
 
-## Session close
+| Symptom | Correct action | Saved |
+|---|---|---|
+| {symptom-you-hit} | {grep-command-that-would-have-solved-it} | {est%} |
 
-1. Update **Current focus** above with next session's task
-2. Add any new scout corrections to the table above
-3. Log key learnings to `docs/archive/learnings.md`
-   - Decisions made, risks flagged, anti-patterns hit, bugs found
+## Session close (MANDATORY)
+
+Before ending any session, update these sections:
+
+### 1. Current focus
+Replace lines 4-6 with the PR/Task and key files for the next session.
+
+### 2. Scout corrections
+If this session wasted tokens on a bad search, add one row:
+`| <symptom> | <grep that solves it> | <est%> |`
+Rank by `Saved` descending. Max 7 rows. Purge bottom when full.
+
+### 3. Archive learnings
+Log decisions, risks, anti-patterns, bugs to `docs/archive/learnings.md`.

@@ -38,7 +38,7 @@ Update status as each phase completes. If any phase reveals follow-up tasks, add
    - **No match**: find the highest roadmapped PR number in the table (max of `PR0`, `PR1`, ...), then use that number + 1. Example: if table has PR0–PR6, the next is PR7. If table is empty, start at PR0.
 4. Derive slug: lowercase `<description>`, replace spaces with hyphens, strip special chars, max 40 chars
 5. Create `docs/plans/PR{N}-{slug}.md` — fill all sections
-6. Check `docs/navigation.md` **Current focus** section for active PR; clear it if it points to a different PR
+6. Check `docs/navigation.md` **Current focus** — set to this PR and key files
 
 *→ Mark Phase 1 todo complete, mark Phase 2 in_progress*
 
@@ -47,7 +47,7 @@ Update status as each phase completes. If any phase reveals follow-up tasks, add
 ## Phase 2 — Document
 
 1. Update `docs/plans/progress.md` — add PR row to **PR Status** table (or update existing Backlog row status to `🚧 In Progress`)
-2. Update `docs/navigation.md` — set **Current focus** to this PR
+2. Update `docs/navigation.md` **Current focus** — set `PR/Task` to this PR's description, `Key files` to expected changed files
 3. **ADR**: if this is a significant architectural change, write `docs/decisions/YYYY-MM-DD-{title}.md`
 4. Update `docs/architecture.md` — if module boundaries, data flow, or tech stack changes
 5. Update `README.md` — if setup or usage changes
