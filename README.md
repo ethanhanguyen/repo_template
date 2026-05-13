@@ -48,56 +48,49 @@ flowchart TD
 
     start(["<b>/pr description</b>"]) --> p1
 
-    subgraph p1["<b>① PLAN</b>"]
-        direction LR
-        p1a["Read PR-prompt-template"] --> p1b["Check navigation.md"]
-        p1b --> p1c["Create plan doc"]
+    subgraph p1["<b>① MATCH</b>"]
+        p1a["Read progress.md"] --> p1b["Match PR plan"]
+        p1b --> p1c["Update status → 🚧"]
     end
 
     p1 --> p2
 
-    subgraph p2["<b>② DOCUMENT</b>"]
+    subgraph p2["<b>② IMPLEMENT</b>"]
         direction LR
-        p2a["Update progress.md"] --> p2b["Write ADR if needed"]
-        p2b --> p2c["Update architecture.md"]
-        p2c --> p2d["Commit docs"]
+        p2a["Analyze independence"] --> p2b{"Parallel?"}
+        p2b -->|"no"| p2c["TDD sequential<br>RED→GREEN→REFACTOR"]
+        p2b -->|"yes"| p2d["Dispatch parallel Tasks<br>RED→GREEN→REFACTOR"]
+        p2c --> p2e["Integration check<br>full test suite"]
+        p2d --> p2e
     end
 
     p2 --> p3
 
-    subgraph p3["<b>③ IMPLEMENT</b>"]
-        direction LR
-        p3a["RED<br>failing test"] --> p3b["GREEN<br>minimal code"] --> p3c["REFACTOR<br>clean up"]
+    subgraph p3["<b>③ QUALITY GATES</b>"]
+        p3a["bash scripts/check.sh"] --> p3b{"Pass?"}
+        p3b -->|"fail"| p3a
+        p3b -->|"pass"| p3c["Behavioral self-review"]
     end
 
     p3 --> p4
 
-    subgraph p4["<b>④ QUALITY GATES</b>"]
-        p4a["bash scripts/check.sh"] --> p4b{"Pass?"}
-        p4b -->|"fail"| p4a
-        p4b -->|"pass"| p4c["Behavioral self-review"]
-    end
-
-    p4 --> p5
-
-    subgraph p5["<b>⑤ SHIP</b>"]
+    subgraph p4["<b>④ SHIP</b>"]
         direction LR
-        p5a["Conventional commit"] --> p5b["Push to remote"]
-        p5b --> p5c["Update progress.md"]
-        p5c --> p5d["Clear navigation focus"]
+        p4a["Conventional commit"] --> p4b["Push to remote"]
+        p4b --> p4c["Merge to main"]
+        p4c --> p4d["Update docs"]
     end
 
-    p5 --> done(["<b>✓ merged to main</b>"])
+    p4 --> done(["<b>✓ merged to main</b>"])
 
     %% Phase colors
     style p1 fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e40af
-    style p2 fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#92400e
-    style p3 fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46
-    style p4 fill:#fef2f2,stroke:#ef4444,stroke-width:2px,color:#991b1b
-    style p5 fill:#f5f3ff,stroke:#8b5cf6,stroke-width:2px,color:#5b21b6
+    style p2 fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46
+    style p3 fill:#fef2f2,stroke:#ef4444,stroke-width:2px,color:#991b1b
+    style p4 fill:#f5f3ff,stroke:#8b5cf6,stroke-width:2px,color:#5b21b6
     style start fill:#1e293b,stroke:#0f172a,color:#f1f5f9
     style done fill:#065f46,stroke:#064e3b,color:#d1fae5
-    style p4b fill:#fef2f2,stroke:#ef4444,color:#991b1b
+    style p3b fill:#fef2f2,stroke:#ef4444,color:#991b1b
 ```
 
 ### Quality gates detail
@@ -113,11 +106,12 @@ flowchart TD
 
 | Phase | Goal | Output |
 |-------|------|--------|
-| **Plan** | Define the change before writing code | `docs/plans/PR{N}-{slug}.md` |
-| **Document** | Connect the PR to project context | Updated progress, navigation, ADRs, architecture |
-| **Implement** | Build with TDD discipline | RED → GREEN → REFACTOR per component |
+| **Match** | Find the planned PR and lock it | Status updated to 🚧 In Progress |
+| **Implement** | Build with TDD discipline | RED → GREEN → REFACTOR per component; parallel dispatch when parts are independent |
 | **Quality** | Automated gates + behavioral self-review | All gates green or back to implement |
-| **Ship** | Get it into main | Squash merge, branch deleted, docs finalized |
+| **Ship** | Get it into main | Conventional commit, merge to main, docs finalized |
+
+**Planning is a separate step**: run `/plan <description>` first to create specs, phase plans, and PR plan docs. Then `/pr <N>` executes one planned PR through the 4-phase pipeline above.
 
 **Language-agnostic**: `scripts/check.sh` auto-configures per stack — lint, typecheck, test+coverage, build, grep guards. 13 languages supported.
 
@@ -147,7 +141,8 @@ your-project/
 │   ├── specs/
 │   │   └── spec-template.md                  # Feature specification template
 │   └── commands/
-│       └── pr.md                             # Atomic PR workflow slash command
+│       ├── pr.md                             # /pr — execute one planned PR (4-phase pipeline)
+│       └── plan.md                           # /plan — create specs, phase plans, PR docs (no code)
 └── .gitignore
 ```
 
@@ -172,18 +167,28 @@ your-project/
 
 | Phase | Questions | Example answer |
 |-------|-----------|----------------|
-| Identity | Project name, repo URL, language/framework | `my-api`, `github.com/org/my-api`, Python/FastAPI |
+| Identity | Project name, repo URL, language/framework, harness (Claude/OpenCode/Codex) | `my-api`, `github.com/org/my-api`, Python/FastAPI, Claude Code |
 | Tooling | Confirm auto-derived commands | `ruff check .`, `pytest --cov`, `mypy src/` |
 | Structure | Tech stack, dir layout, env vars, conventions | PostgreSQL, Redis, pnpm, pr<N>- branches |
 | Quality | Coverage thresholds, grep guards, custom rejections | 85% overall, no `print()` in prod |
 
 The AI detects your stack from existing config files (`package.json`, `pyproject.toml`, etc.) and asks for confirmation — you rarely need to type more than "yes."
 
+### Daily workflow
+
+```
+/plan <feature>     →  Creates specs, phase plans, PR plan docs (docs only, no code)
+/pr <N|keywords>    →  Executes one planned PR: Match → Implement → Quality → Ship
+/pr                 →  Picks the next planned PR in queue
+```
+
 ## Philosophy
 
-**Plan first, code second.** Every feature or bug fix starts with a PR plan doc in `docs/plans/`, updates to `progress.md` and `architecture.md`, and only then touches code. This is enforced by `CLAUDE.md`.
+**Plan first, code second.** Every feature or bug fix starts with the `/plan` command creating specs, phase plans, and PR plan docs in `docs/plans/`. Only then does `/pr` execute the 4-phase pipeline (Match → Implement → Quality → Ship). This separation is enforced by `CLAUDE.md`.
 
-**Surgical changes only.** No speculative features, no unrelated refactoring, no "improvements" outside scope. The 4-phase code review checklist catches these at review time.
+**Surgical changes only.** No speculative features, no unrelated refactoring, no "improvements" outside scope. The behavioral self-review in Phase 3 catches scope creep at review time.
+
+**Parallel when safe.** When a PR plan declares Parts as independent (different files, no shared interfaces), Phase 2 dispatches them in parallel — each Part gets its own TDD cycle. Failures auto-retry sequentially. Backward compatible: no declaration = sequential.
 
 **Docs as living infrastructure.** `progress.md` tracks every PR and session. `learnings.md` accumulates gotchas across sessions. ADRs record why decisions were made. The docs are the project's memory.
 

@@ -333,7 +333,7 @@ Only regenerate files that differ from the template source. Use a content-based 
 | `scripts/check.sh` | **Re-substitute**: regenerate from `docs_template/scripts/check.sh` with current tooling values (`{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`). |
 | `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
 | Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate from `CLAUDE-template.md` / `AGENTS-template.md` with current tooling values. Preserve any custom task routing the user may have added — warn if template changed and list conflicts. |
-| Harness command files (`.claude/commands/pr.md`, `.claude/commands/plan.md`, `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.codex/commands/pr.md`, `.codex/commands/plan.md`) | **Compare then copy if harness dir exists**: compare each harness copy against the template source (`/tmp/repo_template/docs_template/commands/pr.md` and `plan.md`). If content is identical, skip. If different (or missing in harness dir), copy from the template source. **If no harness dir exists**: no action (skip; canonical copies in `docs/commands/` are not created in update mode — they are fresh-install only). Include a harness note in the approval summary so the user can request a specific harness if desired. |
+| Harness command files (`.claude/commands/pr.md`, `.claude/commands/plan.md`, `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.codex/commands/pr.md`, `.codex/commands/plan.md`) | **Copy/override unconditionally if harness dir exists**. Template source is always authoritative for commands — no diff needed. Overwrite existing harness copies directly from `/tmp/repo_template/docs_template/commands/pr.md` and `plan.md`. **If no harness dir exists**: no action (skip; canonical copies in `docs/commands/` are not created in update mode — they are fresh-install only). Include a harness note in the approval summary so the user can request a specific harness if desired. |
 
 ### Update protocol steps
 
@@ -360,9 +360,9 @@ Only regenerate files that differ from the template source. Use a content-based 
  
  - **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions).
  - **Never ask standalone questions**. Everything is auto-detected. If detection fails on a required field, leave the placeholder with `<!-- TODO -->` and mention it in the summary.
- - **Harness exception**: harness preference cannot be auto-detected. Always include a harness line in the approval summary: if dirs exist, confirm harness; compare content of each command file (`pr.md`, `plan.md`) against the template source. If content is identical, note "unchanged; skipped". If different, note "will update from template". If no harness dirs exist, note that the user can reply with a harness name to add support. This is a summary note, not a separate question — the user sees it during the approval gate and can act on it.
+ - **Harness exception**: harness preference cannot be auto-detected. Always include a harness line in the approval summary: if dirs exist, confirm harness; note that command files (`pr.md`, `plan.md`) will be overwritten from template. If no harness dirs exist, note that the user can reply with a harness name to add support. This is a summary note, not a separate question — the user sees it during the approval gate and can act on it.
  - **Never delete user-created files** in `docs/` that don't correspond to a template.
- - **Warn before overwriting** any file the user has modified from its template-original form (if the diff is non-trivial).
+ - **Warn before overwriting** any file the user has modified from its template-original form (if the diff is non-trivial). Harness command files (`.claude/commands/pr.md`, etc.) are excluded — always overwrite from template.
  - **Preserve custom grep patterns** the user may have added to `code-review.md` or `scripts/check.sh`.
  
  ---
@@ -411,7 +411,7 @@ Only regenerate files that differ from the template source. Use a content-based 
  Update summary:
    Regenerating: 1 file (quickstart.md)
    Preserving: 13 files (all runtime content + unchanged templates)
-    Harness: .claude/ → compared: pr.md unchanged, plan.md unchanged (skipped)
+     Harness: .claude/ → pr.md and plan.md will be overwritten from template
  
  Applying changes...
    1 file updated. Verified: ruff clean, mypy clean, pytest 42 passed.

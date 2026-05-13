@@ -52,11 +52,76 @@ Update status as each phase completes.
 
 ## Phase 2 — Implement
 
-1. TDD per component: RED → GREEN → REFACTOR
-2. Match existing conventions, handle errors at external boundaries
-3. See plan doc (`docs/plans/PR{N}-{slug}.md`) for per-component constraints and error handling
+**TDD per component. Parallelize when the plan declares independence.**
 
-*→ Mark Phase 2 todo complete, mark Phase 3 in_progress*
+### 2a. Analyze independence
+
+1. Read the PR plan doc's Implementation parts
+2. Check for `parallel_group` annotations on each Part:
+   - **No annotations** → all parts sequential (single group). Backward compatible.
+   - **Annotated** → parts with the same `parallel_group` value form a group. Groups execute in order (group 1, then group 2, etc.)
+3. Determine strategy:
+   - **Single group** → run all parts sequentially in parent session (2b-sequential)
+   - **Multiple groups** → dispatch parallel Tasks for each multi-part group, sequential for single-part groups (2b-parallel)
+
+*→ Mark 2a todo complete, mark 2b in_progress*
+
+### 2b. Execute
+
+For each group in order:
+
+**Single part in group** (sequential):
+- Run TDD in parent session: RED → GREEN → REFACTOR
+- Match existing conventions, handle errors at external boundaries
+
+**Multiple parts in group** (parallel):
+- Dispatch one Task per Part simultaneously. Each Task prompt:
+
+  ```
+  Implement Part {N} of PR {PR_N}.
+
+  Read the plan at docs/plans/PR{N}-{slug}.md — Part {N} section only.
+
+  Component: {name}
+  File(s): {file_path}
+  Branch: {branch}
+
+  Type signatures / interface:
+  {code_block}
+
+  Constraints:
+  {constraint_list}
+
+  Error handling:
+  {error_cases}
+
+  Follow TDD:
+  1. RED — write failing test(s) for this part only
+  2. GREEN — minimal implementation to pass
+  3. REFACTOR — clean up, keep tests green
+
+  Rules:
+  - Only touch file(s) listed above. Do NOT modify any other file.
+  - Match existing conventions in neighboring files.
+  - Commit to branch {branch} with message: "feat({scope}): {part_description}"
+  - Run tests for your file(s) before returning.
+
+  Return: commit hash, test pass/fail count, any concerns.
+  ```
+
+- Wait for all Tasks in the group to complete.
+- If any Task failed → auto-retry that Part sequentially in parent session.
+- Pull latest branch state before the next group.
+
+*→ Mark 2b todo complete, mark 2c in_progress*
+
+### 2c. Integration check
+
+1. Run full test suite: `{test_cmd}`
+2. If failures → fix sequentially in parent session
+3. Green → proceed to Phase 3
+
+*→ Mark 2c todo complete, mark Phase 3 in_progress*
 
 ---
 

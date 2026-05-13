@@ -84,8 +84,9 @@ Skip if tier is **Simple**.
 2. For each PR in the phase plan (or the single PR if Simple tier):
    - Create `docs/plans/PR{N}-{pr-slug}.md`
    - Fill: Summary, Related (link spec + phase plan + ADRs), Implementation parts, Test requirements, Approach checklist
-   - Each Implementation part gets: file path, type signatures, constraints, error handling
-   - Check `docs/navigation.md` **Scout corrections** for any gotchas relevant to these files
+    - Each Implementation part gets: file path, type signatures, constraints, error handling
+    - **Parallel groups**: if Parts touch disjoint files and no shared interfaces both modify, set `parallel_group: 1` on all Parts and note in a comment that they can run in parallel. If Parts depend on each other (same file, shared interface), leave `parallel_group: {N}` as-is (sequential).
+    - Check `docs/navigation.md` **Scout corrections** for any gotchas relevant to these files
 
 *→ Mark Step 4 complete, mark Step 5 in_progress*
 

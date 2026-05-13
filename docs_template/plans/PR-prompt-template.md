@@ -26,7 +26,14 @@
 
 ## Implementation
 
+<!--
+  parallel_group: Parts with the same number run in parallel (different files, no shared
+  interfaces both modify). Omit or leave as {N} to run sequentially.
+-->
+
 ### Part 1: {component name}
+
+**parallel_group**: {N}
 
 **File**: `{file_path}`
 
@@ -43,6 +50,8 @@
 - {error_case} → {behavior}
 
 ### Part 2: {component name}
+
+**parallel_group**: {N}
 
 **File**: `{file_path}`
 
