@@ -104,7 +104,7 @@ Before any other work, the AI scans the target project directory:
 
 ### Runtime (filled by developers during daily use — NOT by this script)
 
-Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `archive/learnings.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's current-focus section, and `commands/pr.md`'s workflow instructions are also runtime — left with placeholder hints intact.
+Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `archive/learnings.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's task map, always-verify list, scout corrections, and `commands/pr.md`'s workflow instructions are also runtime — left with placeholder hints intact.
 
 ---
 
@@ -255,7 +255,7 @@ plans/phase-plan-template.md   → substitute {test_cmd}, {lint_cmd}, {e2e_cmd},
 plans/PR-prompt-template.md    → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}; leave summary, implementation, test names as runtime
 plans/progress.md              → substitute {PROJECT_NAME}; leave PR status, sessions, notes as runtime
 architecture.md                → substitute {PROJECT_NAME} + tech stack table; leave system_overview, data_flow_diagram, module boundaries, design decisions as runtime
-navigation.md                  → substitute initial Current focus to "docs setup"; scout corrections, task map left as hints
+navigation.md                  → substitute initial Current focus to "docs setup"; always-verify, scout corrections, task map left as hints
 ```
 
 **Files needing full substitution** (all placeholders are setup-time):
@@ -327,7 +327,7 @@ Only regenerate files that differ from the template source. Use a content-based 
 |------|--------|
 | `index.md`, `quickstart.md`, `contributing.md`, `code-review.md`, `testing.md` | **Re-substitute**: re-derive all setup-time placeholders from current repo state. Apply to a fresh copy from the template. Overwrite the generated file. |
 | `architecture.md` | **Partial re-substitute**: update `{PROJECT_NAME}` + tech stack table. Preserve `{system_overview}`, `{data_flow_diagram}`, module boundaries, and design decisions — these are runtime content filled by developers. |
-| `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve all scout corrections and task map. |
+| `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve all scout corrections, task map, and always-verify list. |
 | `PR-template.md`, `commands/pr.md` | **Runtime only** (copied as-is from template if missing). These files no longer contain setup-time placeholders. |
 | `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{threshold}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
 | `scripts/check.sh` | **Re-substitute**: regenerate from `docs_template/scripts/check.sh` with current tooling values (`{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`). |
@@ -435,7 +435,7 @@ When no harness dirs exist, the summary includes:
 - **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md` — these are the agent instruction files that enforce the plan-first rule.
 - **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user which harness they plan to use (Phase 2a). Copy `commands/pr.md` to the matching directory. Always create `docs/commands/pr.md` as the canonical copy.
 - **Verify after generation**. If a command fails, flag it but don't block — the project may not have code yet.
-- **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus, architecture design decisions, or phase plan goals.
+- **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus/scout corrections/task map, architecture design decisions, or phase plan goals.
 - **Preserve exact formatting**. Only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.
 - **Clean up**: after generation and verification, `rm -rf /tmp/repo_template`.
 
@@ -449,7 +449,7 @@ When no harness dirs exist, the summary includes:
 ### Update/refresh mode
 
 - **Never ask questions**. Everything is auto-detected from existing repo state.
-- **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions, navigation corrections).
+- **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions, navigation current-focus, scout corrections, task map, always-verify list).
 - **Never delete user-created files** in `docs/` that don't correspond to a template.
 - **Warn before overwriting** any file the user has modified from its template-original form.
 - **Print a diff summary** before making changes so the user can review.
