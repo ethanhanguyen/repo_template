@@ -7,7 +7,7 @@ Docs entrypoint. Start here every session.
 - [Quickstart](./quickstart.md) — Get running in 5 minutes
 - [Architecture](./architecture.md) — System design and module boundaries
 - [Contributing](./contributing.md) — Setup, conventions, PR workflow
-- [Code Review](./code-review.md) — Review checklist and rejection triggers
+- [Code Review](./code-review.md) — Automated gates + behavioral self-review
 - [PR Template](./PR-template.md) — Canonical PR workflow
 - [Testing](./testing.md) — Test authoring guide and anti-patterns
 

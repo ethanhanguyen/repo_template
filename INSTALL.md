@@ -90,9 +90,11 @@ Before any other work, the AI scans the target project directory:
 | `{backend_framework}` / `{frontend_framework}` | architecture | Stack |
 | `{cache}` / `{storage}` / `{queue}` | architecture | Stack |
 | `{monitoring}` / `{cicd}` / `{hosting}` | architecture | Stack |
-| `{env_read_pattern}` | code-review | Grep guard |
-| `{debug_print_pattern}` | code-review, PR-template, commands/pr | Grep guard |
-| `{todo_pattern}` | code-review, PR-template, commands/pr | Grep guard |
+| `{env_read_pattern}` | code-review, check.sh | Grep guard |
+| `{debug_print_pattern}` | code-review, PR-template, commands/pr, check.sh | Grep guard |
+| `{todo_pattern}` | code-review, PR-template, commands/pr, check.sh | Grep guard |
+| `{source_include}` | check.sh | Grep guard |
+| `{config_dir}` | check.sh | Grep guard |
 | `{sleep_pattern}` | testing | Grep guard |
 | `{mock_not_called}` / `{bare_assert_true}` | testing | Grep guard |
 | `{missing_assert_in_test}` / `{test_specific_impl}` | testing | Grep guard |
@@ -130,13 +132,13 @@ The AI must derive defaults from the Phase 1 answers using these lookup tables. 
 
 ### Language → grep patterns
 
-| Language | debug_print_pattern | env_read_pattern | todo_pattern | sleep_pattern | bare_assert_true |
+| Language | debug_print_pattern | env_read_pattern | todo_pattern | sleep_pattern | bare_assert_true | source_include | config_dir |
 |----------|---------------------|------------------|--------------|---------------|------------------|
-| Python | `print(` | `os\.environ\[` | `TODO\|FIXME\|HACK` | `sleep\(` | `assert True` |
-| TypeScript/JS | `console\.log` | `process\.env\.` | `TODO\|FIXME\|HACK` | `setTimeout` in test | `expect\(true\)` |
-| Go | `fmt\.Println` | `os\.Getenv` | `TODO\|FIXME\|HACK` | `time\.Sleep` in test | — |
-| Rust | `println!` | `std::env::var` | `TODO\|FIXME\|HACK` | `sleep` in test | `assert!\(true\)` |
-| Kotlin/Java | `println\|System\.out` | `System\.getenv` | `TODO\|FIXME\|HACK` | `Thread\.sleep` in test | `assertTrue\(true\)` |
+| Python | `print(` | `os\.environ\[` | `TODO\|FIXME\|HACK` | `sleep\(` | `assert True` | `--include="*.py"` | `config` |
+| TypeScript/JS | `console\.log` | `process\.env\.` | `TODO\|FIXME\|HACK` | `setTimeout` in test | `expect\(true\)` | `--include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx"` | `config` |
+| Go | `fmt\.Println` | `os\.Getenv` | `TODO\|FIXME\|HACK` | `time\.Sleep` in test | — | `--include="*.go"` | `config` |
+| Rust | `println!` | `std::env::var` | `TODO\|FIXME\|HACK` | `sleep` in test | `assert!\(true\)` | `--include="*.rs"` | `config` |
+| Kotlin/Java | `println\|System\.out` | `System\.getenv` | `TODO\|FIXME\|HACK` | `Thread\.sleep` in test | `assertTrue\(true\)` | `--include="*.kt" --include="*.java"` | `config` |
 
 Additional grep patterns per language:
 - `{mock_not_called}`: `verify.*never\|\.notCalled\|mock.*not.*called`
@@ -243,6 +245,8 @@ For **runtime-only templates**, copy them as-is (their placeholders are filled b
 decisions/YYYY-MM-DD-decision-template.md
 archive/learnings.md
 specs/spec-template.md
+PR-template.md
+commands/pr.md
 ```
 
 **Files needing partial substitution** (commands/patterns/thresholds substituted; content sections left as runtime placeholders):
@@ -250,8 +254,6 @@ specs/spec-template.md
 plans/phase-plan-template.md   → substitute {test_cmd}, {lint_cmd}, {e2e_cmd}, {threshold}; leave goal, PRs, validation items as runtime
 plans/PR-prompt-template.md    → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}; leave summary, implementation, test names as runtime
 plans/progress.md              → substitute {PROJECT_NAME}; leave PR status, sessions, notes as runtime
-PR-template.md                 → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}, {debug_print_pattern}, {todo_pattern}; leave phase_plan_link, adr_links, implementation checkboxes as runtime
-commands/pr.md                 → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}, {debug_print_pattern}, {todo_pattern}; leave workflow instructions as runtime
 architecture.md                → substitute {PROJECT_NAME} + tech stack table; leave system_overview, data_flow_diagram, module boundaries, design decisions as runtime
 navigation.md                  → substitute initial Current focus to "docs setup"; scout corrections, task map left as hints
 ```
@@ -264,6 +266,8 @@ contributing.md    → substitute all 15+ placeholders
 code-review.md     → substitute all commands, grep patterns, {threshold}, {project_rejections}
 testing.md         → substitute {PROJECT_NAME} + all grep patterns
 ```
+
+**Special: check.sh** — copy `docs_template/scripts/check.sh` → `scripts/check.sh` (project root, not docs/). Substitute `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`. If any command placeholder resolves to `(none)`, substitute it with `true` (no-op that always passes). Make executable with `chmod +x scripts/check.sh`. This is the single automated gate command.
 
 **Special: Harness command installation** — After generating `docs/commands/pr.md`, copy the command file to the harness's native commands directory. This makes `/pr` work as a native slash command:
 
@@ -324,7 +328,9 @@ Only regenerate files that differ from the template source. Use a content-based 
 | `index.md`, `quickstart.md`, `contributing.md`, `code-review.md`, `testing.md` | **Re-substitute**: re-derive all setup-time placeholders from current repo state. Apply to a fresh copy from the template. Overwrite the generated file. |
 | `architecture.md` | **Partial re-substitute**: update `{PROJECT_NAME}` + tech stack table. Preserve `{system_overview}`, `{data_flow_diagram}`, module boundaries, and design decisions — these are runtime content filled by developers. |
 | `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve all scout corrections and task map. |
-| `PR-template.md`, `commands/pr.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
+| `PR-template.md`, `commands/pr.md` | **Runtime only** (copied as-is from template if missing). These files no longer contain setup-time placeholders. |
+| `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{threshold}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
+| `scripts/check.sh` | **Re-substitute**: regenerate from `docs_template/scripts/check.sh` with current tooling values (`{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`). |
 | `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
 | Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate from `CLAUDE-template.md` / `AGENTS-template.md` with current tooling values. Preserve any custom task routing the user may have added — warn if template changed and list conflicts. |
 | Harness command files (`.claude/commands/pr.md`, `.opencode/commands/pr.md`, `.codex/commands/pr.md`) | **Regenerate if harness dir exists**: copy from updated `commands/pr.md`. **If no harness dir exists**: create only `docs/commands/pr.md` (canonical). Include a harness note in the approval summary so the user can request a specific harness if desired. |
@@ -357,7 +363,7 @@ Only regenerate files that differ from the template source. Use a content-based 
 - **Harness exception**: harness preference cannot be auto-detected. Always include a harness line in the approval summary: if dirs exist, confirm; if not, note that canonical copy will be created and tell the user they can reply with a harness name to add support. This is a summary note, not a separate question — the user sees it during the approval gate and can act on it.
 - **Never delete user-created files** in `docs/` that don't correspond to a template.
 - **Warn before overwriting** any file the user has modified from its template-original form (if the diff is non-trivial).
-- **Preserve custom grep patterns** the user may have added to `code-review.md` or `PR-template.md`.
+- **Preserve custom grep patterns** the user may have added to `code-review.md` or `scripts/check.sh`.
 
 ---
 

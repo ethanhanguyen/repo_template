@@ -22,7 +22,7 @@
 | Debug / fix a bug | Run tests first, grep root cause |
 | Write tests | Follow `docs/testing.md` authoring guide |
 | Architecture / design decision | Write an ADR in `docs/decisions/` |
-| Code review | Use `docs/code-review.md` checklist |
+| Code review | Run `bash scripts/check.sh` + behavioral self-review |
 
 ## Context protocol
 

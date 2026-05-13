@@ -20,8 +20,8 @@
 
 1. Create branch: `pr{N}-{description}`
 2. TDD: write failing tests → implement → refactor
-3. Quality gates: run locally — lint, typecheck, test, build, grep guards — all clean
-4. Code review: pass `docs/code-review.md` 4-phase checklist locally — zero rejection triggers
+3. Quality gates: `bash scripts/check.sh` — all passing
+4. Behavioral self-review: self-check against Quality Gates in `AGENTS.md`
 5. Commit and auto merge to main
 
 ## Implementation
@@ -94,8 +94,8 @@
 
 ### Code review gate
 
-- [ ] 4-phase review passed (`docs/code-review.md`)
-- [ ] No rejection triggers FIRED (debug prints, secrets, bare catch, raw env reads, etc.)
+- [ ] `bash scripts/check.sh` — all passing
+- [ ] Behavioral self-review per `AGENTS.md` Quality Gates (Surgical, Explicit, Minimal, Conventions, Covered, Secure)
 
 ### Final
 

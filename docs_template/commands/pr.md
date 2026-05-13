@@ -4,7 +4,7 @@ When the user invokes `/pr <description>` or says "create a PR for <description>
 
 ## Rules
 
-- **Atomic**: run all 6 phases in order. Never skip.
+- **Atomic**: run all 5 phases in order. Never skip.
 - **Evidence before claims**: show fresh command output for every gate.
 - **Fail fast**: if a gate fails, fix before continuing.
 
@@ -33,22 +33,17 @@ When the user invokes `/pr <description>` or says "create a PR for <description>
 13. Match existing conventions, handle errors at external boundaries
 14. See plan doc (`docs/plans/PR{N}-{slug}.md`) for per-component constraints and error handling
 
-## Phase 4 — Quality gates
+## Phase 4 — Quality gates + behavioral self-review
 
-15. Run automated gates per `docs/PR-template.md` Gate 3
-16. All must pass with fresh evidence: lint, typecheck, test, build, grep guards, secrets
+15. Run `bash scripts/check.sh` — all gates must pass
+16. Self-review against Quality Gates in `AGENTS.md` (Surgical, Explicit, Minimal, Conventions, Covered, Secure)
 17. Fix any failures before proceeding
 
-## Phase 5 — Code review
+## Phase 5 — Commit & push (do NOT open PR)
 
-18. Run 4-phase review per `docs/code-review.md`
-19. Zero rejection triggers must fire. Paste evidence per phase.
-
-## Phase 6 — Commit & push (do NOT open PR)
-
-20. Commit (conventional commit) and push all code changes
-21. **Do NOT open PR** — auto merge is handled by the next step in the pipeline
-22. Update `docs/plans/progress.md` — mark PR row status
-23. Update `docs/navigation.md` — clear **Current focus**
-24. **Commit & push** all final doc updates
-25. Report: branch name, files changed, tests added, gates passed, pushed ✓
+18. Commit (conventional commit) and push all code changes
+19. **Do NOT open PR** — auto merge is handled by the next step in the pipeline
+20. Update `docs/plans/progress.md` — mark PR row status
+21. Update `docs/navigation.md` — clear **Current focus**
+22. **Commit & push** all final doc updates
+23. Report: branch name, files changed, tests added, gates passed, pushed ✓
