@@ -9,8 +9,8 @@ Also trigger on "plan for <description>" or "create a plan for <description>" (v
 ## Rules
 
 - **Docs only**: no code implementation. Create docs, commit to main, push, stop.
-- **Approval before files**: no spec, phase plan, PR doc, or ADR file is written until user approves the draft verbally.
-- **Stop rule**: after presenting a draft and asking for approval, STOP. Wait for user response. If `approved` → continue to next step on same turn. If feedback → apply, re-present, stop.
+- **Approval gates**: I1 (investigation report) and A6 (final summary). Steps A1–A5 proceed without stopping — agent makes best judgments and moves on. No spec, phase plan, PR doc, or ADR file is written until A6 is approved.
+- **Stop rule**: after presenting I1 or A6 and asking for approval, STOP. Wait for user response. If `approved` → continue on same turn. If feedback → apply, re-present, stop.
 - **Evidence before claims**: show fresh command output for every gate.
 
 ## Session resume (DO THIS FIRST EVERY TURN)
@@ -21,230 +21,112 @@ Also trigger on "plan for <description>" or "create a plan for <description>" (v
    - Else → jump to that step (skip earlier approved steps)
 3. If **2+ matching files** → list slugs and current steps, ask: "Multiple plans in progress. Which to resume?"
 4. If **0 matching files** but `docs/plans/progress.md` has `📋 Planned` rows → tell user: "No active plan session found, but planned PRs exist in progress.md. Ready for /pr."
-5. If **0 matching files** and no planned PRs → fresh start at Step A0
+5. If **0 matching files** and no planned PRs → fresh start at Step I0
 
 ## Progress tracking
 
 Create a todo list:
 
-1. Phase A — Discuss & draft (verbal only)
-2. Phase B — Write & commit (after final approval)
+1. Phase I — Investigate (agent-delegated)
+2. Phase A — Discuss & draft (verbal only)
+3. Phase B — Write & commit (after final approval)
 
 ---
 
-# Phase A — Discuss & Draft
+# Phase I — Investigate
 
-> **NO plan docs written to `docs/specs/`, `docs/plans/PR*.md`, or `docs/decisions/` during this phase.** Only discuss verbally. The tracking file lives in `/tmp` (never committed).
+> **Dispatch a subagent to understand the problem before planning.** No code changes. Output is a report presented for user approval.
 
-## Step A0 — Initialize plan state
+## Step I0 — Initialize + dispatch investigation
 
 1. Derive `slug`: lowercase `<description>`, replace spaces with hyphens, strip special chars, max 40 chars.
 2. Read `docs/plans/plan-state-template.md` for structure.
 3. Create `/tmp/plan-state-{slug}.md` with:
    - `slug`, `original_description`, `complexity_tier: unset`
-   - `current_step: A1`
+   - `current_step: I0`
    - Empty `approvals` table, empty `change_log`
 4. Check if `<description>` contains "approved" or "lgtm" (case-insensitive, as a separate word):
-   - If YES → set ALL steps as pre-approved in plan-state.md. Skip Phase A entirely (agent still does mental drafting — assess, structure, plan — then jump to Phase B Step B1 and write complete docs).
-   - If NO → set A1 `current_step`, proceed to Step A1.
+   - If YES → set ALL steps as pre-approved in plan-state.md. Skip Phase I and Phase A entirely (agent still does mental drafting — investigate, assess, structure, plan — then jump to Phase B Step B1 and write complete docs).
+   - If NO → continue to step 5.
 
-## Step A1 — Assess complexity
+5. **Detect intent** from `<description>`:
+   - Contains `bug`, `fix`, `error`, `crash`, `broken`, `failing`, `exception` → bug investigation
+   - Otherwise → feature/change investigation
 
-1. Classify into one of three tiers:
+6. **Dispatch investigation agent** via Task tool:
 
-| Tier | Criteria | Output |
-|------|----------|--------|
-| **Simple** | 1 PR, localized change, no new modules | 1 PR plan doc, no spec, no phase plan |
-| **Medium** | 2–5 PRs, spans modules, new API/schema | spec + phase plan + N PR plan docs |
-| **Large** | Multi-phase, major feature, new services | per-phase specs + per-phase plans + N PR plan docs |
+   | Intent | Agent | Prompt |
+   |--------|-------|--------|
+   | Bug | `InvestigatorAgent` | "Investigate: {description}. Find root cause. Read relevant files, trace call paths, isolate the fault. Return: (1) root cause with file:line, (2) affected code paths, (3) evidence (stack traces, logs), (4) recommended fix strategy." |
+   | Feature | `explore` (very thorough) | "Explore codebase for: {description}. Understand existing patterns, module boundaries, adjacent code, extension points. Return: (1) relevant modules/files with key interfaces, (2) existing patterns to follow, (3) integration points, (4) risks/gotchas." |
 
-2. **Present verbally**: "I classify this as **{tier}**. {1-sentence reasoning}. Does that look right?"
+7. Wait for agent result. Store the full agent response in a variable `investigation_report`.
+8. Mark I0 `approved`, `current_step: I1`.
+
+*→ Update plan-state.md: I0 approved + current_step=I1*
+
+## Step I1 — Investigation approval gate
+
+1. **Present** the investigation report with a compact summary:
+   - Bug: root cause (1 line), affected files, recommended fix strategy
+   - Feature: relevant modules, patterns to follow, integration points
+   - Always include the raw agent output (collapsed) below the summary
+
+2. **Ask**: "Investigation complete. Reply **approved** to proceed to planning, or tell me what to re-examine."
 
 3. **Wait for user response**:
-   - `approve`: "approved", "yes", "lgtm" → record tier in plan-state.md, mark A1 `approved`, set `current_step`:
-     - Simple → `A6`
-     - Medium/Large → `A2`
-     - Proceed immediately (same turn).
-   - `approved but <feedback>`: apply feedback, mark `approved`, note change in change_log, proceed.
-   - Any other text → treat as feedback, re-classify/discuss, re-present, stop.
+   - `approved` → mark I1 `approved`, `current_step: A1`, set `investigation_report` field in plan-state.md, proceed immediately to Step A1.
+   - Feedback → re-dispatch investigation agent with new guidance, re-present report, stop.
 
-*→ Update plan-state.md: tier set + A1 approved + next current_step*
+*→ Update plan-state.md: I1 approved + current_step=A1 + investigation report stored*
 
-## Step A2 — Draft spec (Medium/Large only)
+---
 
-Skip if Simple tier.
+# Phase A — Discuss & Draft
+(verbal only, nothing written to docs/; tracking in /tmp/plan-state-{slug}.md)
 
-1. Read `docs/specs/spec-template.md` for structure.
-2. **Draft verbally** — present in conversation (do NOT write to file):
+Context: use `investigation_report` throughout.
 
-   ```
-   ## Spec: {slug}
+## Step A1 — Assess complexity → route
 
-   ### Overview
-   {2-3 sentences}
+| Tier | Criteria | Output | Next |
+|------|----------|--------|------|
+| **Simple** | 1 PR, localized, no new modules | 1 PR plan doc | → A4 |
+| **Medium** | 2–5 PRs, spans modules, new API/schema | spec + phase plan + N PR docs | → A2 |
+| **Large** | Multi-phase, new services | per-phase specs + per-phase plans + N PR docs | → A2 |
 
-   ### Functional requirements
-   - {FR1}
-   - {FR2}
+Present: "**{tier}** tier. {1-sentence}." → mark A1 approved, `current_step` = route above, continue.
 
-   ### Non-functional requirements
-   - {NFR1}
+## Step A2 — Draft spec (Medium/Large)
 
-   ### API endpoints / Data model (if applicable)
-   {summary}
+Skip if Simple. Draft verbally using `docs/specs/spec-template.md` structure. → mark A2 approved, `current_step: A3`.
 
-   ### Error handling
-   {key cases}
+## Step A3 — Draft phase plan (Medium/Large)
 
-   ### Open questions
-   - {Q1}
-   ```
-
-3. **Ask**: "Does this spec look correct? Reply **approved** or tell me what to change."
-
-4. **Wait for user response**:
-   - `approved` → mark A2 `approved`, `current_step: A3`, proceed immediately.
-   - `approved but <feedback>` → apply feedback, mark `approved`, note in change_log, proceed.
-   - `skip` → mark A2 `approved` (skipped), `current_step: A3`, proceed.
-   - Feedback → apply changes, re-present draft, stop.
-
-5. **Rewind rule**: if feedback invalidates an already-approved earlier step (e.g. user wants Medium not Large → contradicts A1), mark that step AND all later steps back to `pending` in plan-state.md, restart from that step.
-
-*→ Update plan-state.md: A2 approved + current_step=A3*
-
-## Step A3 — Draft phase plan (Medium/Large only)
-
-Skip if Simple tier.
-
-1. Read `docs/plans/progress.md` — check **PR Status** table for highest PR number in use.
-2. Let `base` = that number + 1 (or 0 if table empty).
-3. Read `docs/plans/phase-plan-template.md` for structure.
-4. Read `docs/architecture.md` for current module boundaries.
-5. Determine phase number N from existing phase plans in `docs/plans/`.
-6. **Draft verbally** — present (do NOT write to file):
-
-   ```
-   ## Phase {N} Plan: {name}
-
-   ### Goal
-   {one paragraph}
-
-   ### PRs
-   | PR | Name | Dependencies | Files | Approach |
-   |----|------|--------------|-------|----------|
-   | PR{N}0 | ... | — | ... | ... |
-   | PR{N}1 | ... | PR{N}0 | ... | ... |
-
-   ### Dependency graph
-   PR{N}0 → PR{N}1 → ...
-
-   ### Exit criteria
-   - ...
-   ```
-
-7. **Ask**: "Does this phase breakdown look correct? Reply **approved** or tell me what to change."
-
-8. **Wait for user response**:
-   - `approved` → mark A3 `approved`, `current_step: A4`, proceed immediately.
-   - `approved but <feedback>` → apply, mark `approved`, note change, proceed.
-   - Feedback → apply, re-present, stop.
-   - Rewind rule applies.
-
-*→ Update plan-state.md: A3 approved + current_step=A4*
+Skip if Simple. Read `docs/plans/progress.md` for next PR numbers, `docs/architecture.md` for boundaries. Draft verbally using `docs/plans/phase-plan-template.md`. → mark A3 approved, `current_step: A4`.
 
 ## Step A4 — Draft PR docs
 
-For each PR in the phase plan (or the single PR for Simple tier), in order:
-
-1. Read `docs/plans/PR-prompt-template.md` for structure.
-2. **Draft verbally** — present:
-
-   ```
-   ## PR{N} — {name}
-
-   ### Summary
-   {what and why}
-
-   ### Files
-   - `{path}` (new/modified)
-
-   ### Implementation parts
-   | Part | File | Key interface |
-   |------|------|---------------|
-   | 1 | ... | ... |
-   | 2 | ... | ... |
-
-   ### Test requirements
-   - {test_1}
-   - {test_2}
-
-   ### Dependencies
-   PR#{X}
-   ```
-
-3. **Ask** (after each PR or as a batch for 3+ PRs): "Do these PR plans look correct? Reply **approved** or tell me what to change."
-4. **Wait for user response** (same rules as above).
-5. Rewind rule applies.
-
-*→ Update plan-state.md: A4 approved + current_step=A5 (or A6 if no ADRs needed)*
+For each PR (or the single PR for Simple): draft verbally using `docs/plans/PR-prompt-template.md`. → mark A4 approved, `current_step: A5` (or `A6` if no ADRs).
 
 ## Step A5 — Draft ADRs (if applicable)
 
-If the plan reveals architectural decisions (new module boundaries, tech stack changes, data flow changes, scaling model changes):
-
-1. Read `docs/decisions/YYYY-MM-DD-decision-template.md`.
-2. **Draft verbally** — for each decision:
-
-   ```
-   ## ADR: {title}
-
-   ### Context
-   {why this decision is needed}
-
-   ### Decision
-   {what we decided}
-
-   ### Alternatives considered
-   - {Alt 1} — {why rejected}
-   - {Alt 2} — {why rejected}
-
-   ### Consequences
-   {positive and negative}
-   ```
-
-3. **Ask**: "Does this ADR look correct? Reply **approved** or tell me what to change."
-4. **Wait for user response** (same rules).
-
-If no architectural decisions → skip A5, mark as `skipped`.
-
-*→ Update plan-state.md: A5 approved + current_step=A6*
+If architectural decisions needed: draft verbally using `docs/decisions/YYYY-MM-DD-decision-template.md`. → mark A5 approved, `current_step: A6`. If none → skip A5.
 
 ## Step A6 — Final approval gate
 
-1. **Present summary** of everything approved:
-
-   ```
-   ## Plan summary — {slug}
-
-   - **Tier**: {tier}
-   - **Spec**: {slug}.md — {N} FRs （"none" if Simple）
-   - **Phase plan**: phase{N}-plan.md — {N} PRs （"none" if Simple）
-   - **PR docs**: PR{N0}, PR{N1}, ...
-   - **ADRs**: {N} decisions （"none"）
-   ```
-
-2. **Ask**: "All plan elements reviewed. Reply **approved** to write docs to files and commit to main, or tell me what to change."
+1. Present compact summary:
+   - Tier, spec status, phase plan, PR list (PR{N0}...), ADRs
+2. **Ask**: "Approve plan? Reply **approved** to write docs or tell me what to change."
 3. **Wait for user response**:
-   - `approved` → mark A6 `approved`, `current_step: B1`, proceed immediately to Phase B.
-   - Feedback → go back to relevant step, re-draft that step + all downstream steps, re-present final summary, stop.
-
-*→ Update plan-state.md: A6 approved + current_step=B1*
+   - `approved` → mark A6 approved, `current_step: B1`, proceed to Phase B.
+   - Feedback → re-draft affected step(s) + downstream, re-present A6, stop.
 
 ---
 
 # Phase B — Write & Commit
 
-> Only execute after A6 is approved (or pre-approved in A0). All files written are idempotent — if a file already exists with matching content, skip. If Phase B was interrupted (crash), re-run from B1 — it will detect existing files and fill gaps.
+> Only execute after A6 is approved (or pre-approved in I0). All files written are idempotent — if a file already exists with matching content, skip. If Phase B was interrupted (crash), re-run from B1 — it will detect existing files and fill gaps.
 
 ## Step B1 — Write all docs to files
 
