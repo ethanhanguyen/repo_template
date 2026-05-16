@@ -17,6 +17,17 @@ TEMPLATE_DIR       = docs_template/
 
 The AI clones `TEMPLATE_REPO_URL` into a temp directory (e.g. `/tmp/repo_template`), reads all files in `TEMPLATE_DIR`, and uses them to generate output. After generation, the temp clone is deleted.
 
+### Decision flow (AI reads this first)
+
+```
+Repo scan
+  ├─ No config AND no src/ AND no docs/ → Empty repo protocol (3 questions)
+  ├─ Config or src/ exists, no docs/    → Fresh install (Rounds 1–4 + approval)
+  └─ docs/ already exists               → Update/refresh mode (zero questions)
+```
+
+See the [Example sections](#example-empty-repo-3-questions) at the end for concrete walkthroughs.
+
 ---
 
 ## Protocol overview
@@ -26,7 +37,7 @@ The AI clones `TEMPLATE_REPO_URL` into a temp directory (e.g. `/tmp/repo_templat
 Before any other work, the AI scans the target project directory:
 
 1. **Does `docs/` already exist?**
-   - **No** → **Fresh install mode** (interactive, Phases 1–4)
+   - **No** → **Fresh install mode** (interactive, Rounds 1–4)
    - **Yes** → **Update/refresh mode** (zero questions, auto-detect). See [Update/refresh mode](#updaterefresh-mode) section below.
 
 2. **Auto-detect from repo state** (both modes):
@@ -34,7 +45,7 @@ Before any other work, the AI scans the target project directory:
    - Package manager: read from config files
    - Tooling commands: detect existing lint/test/build scripts from config or Makefile
    - Env vars: parse `.env.example` if present
-    - Harness directory: note presence/absence of `.claude/`, `.opencode/`, `.codex/` (actual question asked later in Phase 2a)
+    - Harness directory: note presence/absence of `.claude/`, `.opencode/`, `.codex/` (actual question asked later in Round 2a)
 
 #### Empty repo detection
 
@@ -44,9 +55,9 @@ Before any questions, scan the repo. If ALL these are true:
 - No `.env.example`
 - No existing `docs/`
 
-→ Mark the repo as **empty** and enter the **empty repo protocol** below (skip Phases 1–4).
+→ Mark the repo as **empty** and enter the **empty repo protocol** below (skip Rounds 1–4).
 
-If at least a config file OR source directory exists, proceed with standard Phases 1–4.
+If at least a config file OR source directory exists, proceed with standard Rounds 1–4.
 
 ### Fresh install protocol
 
@@ -112,15 +123,15 @@ If user says no or hasn't answered Q1/Q2, stop. Do not generate.
 | All grep patterns | Derived from language table (normal) |
 | `{project_rejections}` | `(none)` |
 
-After Q1–Q3 + empty-repo defaults, proceed to Step 0 below.
+After Q1–Q3 + empty-repo defaults, proceed to Step 2 (Approval gate) — skip Step 0 (already read templates) and Step 1 (empty repos skip Round 1–4 questions).
 
-**Normal repos** (config or source detected): proceed through Steps 0–4 normally. See Step 1 — Ask & derive for Phase 1–4 questions.
+**Normal repos** (config or source detected): proceed through Steps 0–4 normally. See Step 1 — Ask & derive for Round 1–4 questions.
 
 ---
 
 1. **Clone source**: `git clone {TEMPLATE_REPO_URL} /tmp/repo_template`
 2. **Inventory**: Read all files in `docs_template/` to understand each template
-3. **Discover**: Ask Phase 1–4 questions (including Phase 2a harness question), derive all defaults (Steps 0–1)
+3. **Discover**: Ask Round 1–4 questions (including Round 2a harness question), derive all defaults (Steps 0–1)
 4. **Approval gate**: Present the full plan (files to create, placeholders to fill, tooling commands) and **wait for user approval** before writing any files
 5. **Generate**: Create `docs/`, copy templates, substitute every placeholder (Step 3)
 6. **Verify**: Run commands to confirm they work, report results (Step 4)
@@ -145,20 +156,23 @@ After Q1–Q3 + empty-repo defaults, proceed to Step 0 below.
 
 | Placeholder | Appears in | Category |
 |-------------|-----------|----------|
-| `{PROJECT_NAME}` | index, quickstart, contributing, architecture, testing, progress | Identity |
+| `{PROJECT_NAME}` | index, quickstart, contributing, architecture, testing, progress, CLAUDE-template, AGENTS-template | Identity |
+| `{what are you working on?}` / `{files most relevant to current task}` | navigation | Identity |
 | `{repo_url}` | quickstart, contributing | Identity |
 | `{project_dir}` | quickstart, contributing | Identity |
 | `{language}` / `{version}` | quickstart | Platform |
-| `{package_manager}` / `{install_command}` | quickstart, contributing | Platform |
+| `{package_manager}` | quickstart | Platform |
+| `{install_command}` | quickstart, contributing | Platform |
 | `{verify_command}` | quickstart, contributing | Platform |
 | `{start_command}` | quickstart | Platform |
 | `{expected_output}` | quickstart | Identity |
-| `{lint_cmd}` / `{lint_command}` | code-review, PR-template, PR-prompt, phase-plan, quickstart | Tooling |
-| `{typecheck_cmd}` / `{typecheck_command}` | code-review, PR-template, PR-prompt, quickstart | Tooling |
-| `{test_cmd}` / `{test_command}` | code-review, PR-template, PR-prompt, contributing, phase-plan | Tooling |
-| `{build_cmd}` / `{build_command}` | code-review, PR-template, quickstart | Tooling |
-| `{e2e_cmd}` | code-review, phase-plan | Tooling |
-| `{benchmark_cmd}` | code-review | Tooling |
+| `{lint_cmd}` / `{lint_command}` | code-review, PR-prompt, phase-plan, quickstart | Tooling |
+| `{typecheck_cmd}` / `{typecheck_command}` | code-review, PR-prompt, quickstart | Tooling |
+| `{test_cmd}` / `{test_command}` | code-review, PR-prompt, contributing, phase-plan, quickstart | Tooling |
+| `{test_cmd_single}` | contributing | Tooling |
+| `{build_cmd}` / `{build_command}` | quickstart, check.sh | Tooling |
+| `{e2e_cmd}` | phase-plan | Tooling |
+| `{benchmark_cmd}` | (none — available for future use) | Tooling |
 | `{format_cmd}` | (not in templates but useful) | Tooling |
 | `{deploy_command}` / `{cloud_deploy_command}` | quickstart | Tooling |
 | `{config_file}` | contributing | Structure |
@@ -170,19 +184,22 @@ After Q1–Q3 + empty-repo defaults, proceed to Step 0 below.
 | `{backend_framework}` / `{frontend_framework}` | architecture | Stack |
 | `{cache}` / `{storage}` / `{queue}` | architecture | Stack |
 | `{monitoring}` / `{cicd}` / `{hosting}` | architecture | Stack |
-| `{env_read_pattern}` | code-review, check.sh | Grep guard |
-| `{debug_print_pattern}` | code-review, PR-template, check.sh | Grep guard |
-| `{todo_pattern}` | code-review, PR-template, check.sh | Grep guard |
+| `{env_read_pattern}` | check.sh | Grep guard |
+| `{debug_print_pattern}` | check.sh | Grep guard |
+| `{todo_pattern}` | check.sh | Grep guard |
 | `{source_include}` | check.sh | Grep guard |
 | `{config_dir}` | check.sh | Grep guard |
 | `{sleep_pattern}` | testing | Grep guard |
 | `{mock_not_called}` / `{bare_assert_true}` | testing | Grep guard |
 | `{missing_assert_in_test}` / `{test_specific_impl}` | testing | Grep guard |
 | `{env_read_in_test}` | testing | Grep guard |
-| `{threshold}` (coverage) | code-review, phase-plan | Quality |
+| `{threshold}` (coverage) | code-review, phase-plan, CLAUDE-template, AGENTS-template | Quality |
 | `{project_rejections}` (custom rejection triggers) | code-review | Quality |
 
 ### Runtime (filled by developers during daily use — NOT by this script)
+
+**Note**: `{description}` appears as a runtime-only placeholder in many templates (quickstart walkthrough, contributing module descriptions, architecture tech stack purposes). It is NEVER substituted during setup — developers fill it later.
+
 
 Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/plan-state-template.md`, `archive/learnings.md`, `commands/pr.md`, `commands/plan.md`, `commands/audit_pr.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's task map, always-verify list, scout corrections, and commands' workflow instructions are also runtime — left with placeholder hints intact. NOTE: `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, and `plans/progress.md` contain setup-time placeholders and are handled in partial substitution below.
 
@@ -190,7 +207,7 @@ Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/plan-sta
 
 ## Default derivation rules
 
-The AI must derive defaults from the Phase 1 answers using these lookup tables. If the project already has a codebase, inspect existing config files (`package.json`, `pyproject.toml`, `Cargo.toml`, `Makefile`, etc.) to refine defaults.
+The AI must derive defaults from the Round 1 answers using these lookup tables. If the project already has a codebase, inspect existing config files (`package.json`, `pyproject.toml`, `Cargo.toml`, `Makefile`, etc.) to refine defaults.
 
 ### Language → tooling commands
 
@@ -202,8 +219,8 @@ The AI must derive defaults from the Phase 1 answers using these lookup tables. 
 | JavaScript | `eslint .` | (none) | `vitest run --coverage` | `vitest run` | (none) | `prettier --write .` |
 | Go | `golangci-lint run` | `go vet ./...` | `go test -cover ./...` | `go test` | `go build ./...` | `gofmt -w .` |
 | Rust | `cargo clippy -- -D warnings` | `cargo check` | `cargo test` | `cargo test` | `cargo build` | `cargo fmt` |
-| Kotlin/JVM | `detekt` | `gradle compileKotlin` | `gradle test` | `gradle test --tests` | `gradle build` | `ktlint --format` |
-| Java | `spotlessCheck` | `gradle compileJava` | `gradle test` | `gradle test --tests` | `gradle build` | `spotlessApply` |
+| Kotlin/JVM | `detekt` | `gradle compileKotlin` | `gradle test` | `gradle test --tests "TestClass.testMethod"` | `gradle build` | `ktlint --format` |
+| Java | `spotlessCheck` | `gradle compileJava` | `gradle test` | `gradle test --tests "TestClass.testMethod"` | `gradle build` | `spotlessApply` |
 | C++ | `clang-tidy src/**/*.cpp` | (none) | `ctest --output-on-failure` | `ctest -R` | `cmake --build build` | `clang-format -i` |
 | Ruby | `rubocop` | `sorbet tc` | `rspec --format documentation` | `rspec` | (none) | `rubocop -A` |
 | Swift | `swiftlint` | `swift build` | `swift test` | `swift test --filter` | `swift build` | `swiftformat .` |
@@ -222,7 +239,7 @@ The AI must derive defaults from the Phase 1 answers using these lookup tables. 
 
 Additional grep patterns per language:
 - `{mock_not_called}`: `verify.*never\|\.notCalled\|mock.*not.*called`
-- `{missing_assert_in_test}`: language-specific (e.g. for pytest: function with `def test_` containing no `assert`)
+- `{missing_assert_in_test}`: language-specific (e.g. for pytest: function with `def test_` containing no `assert`). **Note**: this requires structural analysis (not grep alone). The AI should inspect test bodies for missing assertions.
 - `{test_specific_impl}`: `\._\w+\(` (private method call in test)
 - `{env_read_in_test}`: same as `env_read_pattern` but scoped to test files
 
@@ -231,9 +248,16 @@ Additional grep patterns per language:
 | Language | install_command | verify_command | start_command |
 |----------|----------------|----------------|---------------|
 | Python | `python -m venv venv && source venv/bin/activate && pip install -e ".[dev]"` | `python -c "import {project_dir}"` | `python -m {project_dir}` |
-| TypeScript/Node | `npm install` | `npm run build 2>/dev/null || echo "ok"` | `npm run dev` |
+| TypeScript/Node | `npm install` | `npm run build` | `npm run dev` |
 | Go | `go mod download` | `go build ./...` | `go run ./cmd/server` |
 | Rust | `cargo build` | `cargo check` | `cargo run` |
+| Kotlin/JVM | `gradle build` | `gradle test` | `gradle run` |
+| Java | `gradle build` | `gradle test` | `gradle run` |
+| Ruby | `bundle install` | `ruby -c lib/{project_dir}.rb` | `bundle exec ruby lib/{project_dir}.rb` |
+| Swift | `swift build` | `swift build` | `swift run` |
+| Elixir | `mix deps.get` | `mix compile --warnings-as-errors` | `mix phx.server` |
+| Zig | `zig build` | `zig build test` | `zig build run` |
+| C++ | `cmake -B build && cmake --build build` | `ctest --test-dir build` | `./build/{project_dir}` |
 
 ### Language → additional defaults
 
@@ -256,7 +280,7 @@ Default: `{e2e_cmd}` = (none), `{benchmark_cmd}` = (none) unless the project alr
 
 | Placeholder | Default |
 |-------------|---------|
-| `{project_dir}` | Basename of working directory (e.g., `my-project` from `/home/user/my-project`) |
+| `{project_dir}` | Last segment of `{repo_url}` without `.git` suffix (e.g., `my-project` from `github.com/user/my-project.git`) |
 | `{expected_output}` | If no code exists: `<!-- TODO: describe expected first-run output -->` |
 
 ---
@@ -265,21 +289,21 @@ Default: `{e2e_cmd}` = (none), `{benchmark_cmd}` = (none) unless the project alr
 
 ### Step 0 — Read templates
 
-Read every file in `docs_template/`. Understand the full placeholder surface.
+Read every file in `docs_template/`. Build a map: file → each `{PLACEHOLDER}` found. Cross-reference against the Placeholder Catalog table above to identify which are setup-time vs runtime.
 
-### Step 1 — Ask & derive (Phases 1–4)
+### Step 1 — Ask & derive (Question rounds 1–4)
 
 **If repo is empty** (no configs, no source, per detection above): skip this step. The empty repo protocol (3 questions) already ran. All tooling/grep derived from language table; all stack/env/module/verify/start → `<!-- TODO -->`. Proceed to Step 2.
 
 **Normal repos**: Ask these questions in order, then derive all other defaults from the lookup tables above. If the project already has code, auto-detect from config files first (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.).
 
-**IMPORTANT**: Phase 2a (harness) is NOT optional. You must ask it even if no harness directory is detected. Do not silently skip it.
+**IMPORTANT**: Round 2a (harness) is NOT optional. You must ask it even if no harness directory is detected. Do not silently skip it.
 
-**Phase 1 — Identity**: project name, repo URL, language/framework, package manager.
+**Round 1 — Identity**: project name, repo URL, language/framework, package manager.
 
-**Phase 2 — Tooling** (derived, confirm): `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{format_cmd}`, `{e2e_cmd}`, `{benchmark_cmd}`, `{install_command}`, `{verify_command}`, `{start_command}`, `{deploy_command}`.
+**Round 2 — Tooling** (derived, confirm): `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{format_cmd}`, `{e2e_cmd}`, `{benchmark_cmd}`, `{install_command}`, `{verify_command}`, `{start_command}`, `{deploy_command}`.
 
-**Phase 2a — Harness** (REQUIRED question — never skip): Before continuing, scan for `.claude/`, `.opencode/`, `.codex/` directories. Then:
+**Round 2a — Harness** (REQUIRED question — never skip): Before continuing, scan for `.claude/`, `.opencode/`, `.codex/` directories. Then:
 
 - **If a harness directory exists**: confirm with the user (e.g. "Detected .claude/ — use Claude Code?"). Update if they correct you.
 - **If NO harness directory exists**: you MUST ask this question. Do not silently proceed.
@@ -295,9 +319,9 @@ Which AI coding harness do you plan to use?
 
 If the user selects 1–3, create the directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` there during Step 3. `docs/commands/pr.md`, `docs/commands/plan.md`, and `docs/commands/audit_pr.md` are always created as the canonical copies. If the user selects 4 (None), skip harness-specific install.
 
-**Phase 3 — Structure** (derived, confirm): `{config_file}`, `{module_1}`/`{module_2}`, tech stack (`{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`), env vars (parse `.env.example` if present), `{additional_tools}`.
+**Round 3 — Structure** (derived, confirm): `{config_file}`, `{module_1}`/`{module_2}`, tech stack (`{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`), env vars (parse `.env.example` if present), `{additional_tools}`.
 
-**Phase 4 — Quality** (derived, confirm): coverage thresholds (85/90/80), grep patterns (`{env_read_pattern}`, `{debug_print_pattern}`, `{todo_pattern}`, `{sleep_pattern}`, `{mock_not_called}`, `{bare_assert_true}`, `{missing_assert_in_test}`, `{test_specific_impl}`, `{env_read_in_test}`), custom `{project_rejections}`.
+**Round 4 — Quality** (derived, confirm): coverage thresholds (85/90/80), grep patterns (`{env_read_pattern}`, `{debug_print_pattern}`, `{todo_pattern}`, `{sleep_pattern}`, `{mock_not_called}`, `{bare_assert_true}`, `{missing_assert_in_test}`, `{test_specific_impl}`, `{env_read_in_test}`), custom `{project_rejections}`.
 
 ### Step 2 — Approval gate
 
@@ -346,21 +370,21 @@ commands/audit_pr.md
 plans/phase-plan-template.md   → substitute {test_cmd}, {lint_cmd}, {e2e_cmd}, {threshold}; leave goal, PRs, validation items as runtime
 plans/PR-prompt-template.md    → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}; leave summary, implementation, test names as runtime
 plans/progress.md              → substitute {PROJECT_NAME}; leave PR status, sessions, notes as runtime
-architecture.md                → substitute {PROJECT_NAME} + tech stack table; leave system_overview, data_flow_diagram, module boundaries, design decisions as runtime
-navigation.md                  → substitute initial Current focus to "docs setup"; always-verify, scout corrections, task map left as hints
+architecture.md                → substitute {PROJECT_NAME}, {module_1}, {module_2}, and tech stack ({backend_framework}, {frontend_framework}, {database}, {cache}, {storage}, {queue}, {monitoring}, {cicd}, {hosting}); leave system_overview, data_flow_diagram, module boundary details ({description}, {inputs}, {outputs}, {deps}), design decisions, scaling_description as runtime
+navigation.md                  → substitute {what are you working on?} to "docs setup" and {files most relevant to current task} to "docs/, scripts/, ./"; always-verify, scout corrections, task map left as hints
                                 (NOTE: the literal text `{PLACEHOLDER}` on navigation.md is a developer grep target — do NOT substitute it)
 ```
 
-**Files needing full substitution** (all placeholders are setup-time):
+**Files needing full substitution** (primarily setup-time; see Runtime section above for `{description}` tokens that are NOT substituted):
 ```
 index.md           → substitute {PROJECT_NAME}
-quickstart.md      → substitute all 20+ placeholders
-contributing.md    → substitute all 15+ placeholders
-code-review.md     → substitute all commands, grep patterns, {threshold}, {project_rejections}, {benchmark_cmd}
+quickstart.md      → substitute all 20+ setup-time placeholders; leave walkthrough {Step 1/2/3} and {description and command} as runtime
+contributing.md    → substitute all 12+ setup-time placeholders; leave module {description}, {default}, and env {description} runtime
+code-review.md     → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}, {threshold}, {project_rejections}
 testing.md         → substitute {PROJECT_NAME} + all grep patterns
 ```
 
-**Special: check.sh** — copy `docs_template/scripts/check.sh` → `scripts/check.sh` (project root, not docs/). Substitute `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`. If any command placeholder resolves to `(none)`, substitute it with `true` (no-op that always passes). Make executable with `chmod +x scripts/check.sh`. This is the single automated gate command.
+**Special: check.sh** — copy `docs_template/scripts/check.sh` → `scripts/check.sh` (project root, not docs/). Substitute `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`. If any command placeholder resolves to `(none)`, substitute it with `true` (no-op that always passes — e.g. the build gate for languages without a build step). Make executable with `chmod +x scripts/check.sh`. This is the single automated gate command.
 
 **Special: Harness command installation** — After generating `docs/commands/pr.md`, `docs/commands/plan.md`, and `docs/commands/audit_pr.md`, copy the command files to the harness's native commands directory. This makes `/pr`, `/plan`, and `/audit_pr` work as native slash commands:
 
@@ -371,7 +395,7 @@ testing.md         → substitute {PROJECT_NAME} + all grep patterns
 | Codex | `.codex/commands/pr.md`, `.codex/commands/plan.md`, `.codex/commands/audit_pr.md` | `.codex/` exists or user selected it |
 | Generic | `docs/commands/pr.md`, `docs/commands/plan.md`, `docs/commands/audit_pr.md` | Always created (canonical copies) |
 
-If no harness directory exists, **ask the user** during Phase 2a which harness they plan to use (see above). Create the harness directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` there. If the user selects "None", create only `docs/commands/`. The canonical copies in `docs/commands/` work as a reference all harnesses can read.
+The harness was determined in Round 2a above. Create the harness directory (e.g. `mkdir -p .claude/commands`) and copy the three command files from `docs_template/commands/` into it. If the user selected "None", skip harness-specific install — only `docs/commands/` is created.
 
 **Special: CLAUDE-template.md** — copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{threshold}`. This file enforces the **plan-first rule**: before any code change, create a PR plan doc and update progress/architecture/README first.
 
@@ -396,8 +420,12 @@ After generation, run these checks and report results.
 3. Run the artifact scan (see below)
 
 **Both modes — final artifact scan** (run last, always):
+
+Verify every placeholder from the Setup-time catalog table above has been substituted in all generated files. Run:
+
 ```bash
-grep -rn '\{PROJECT_NAME\}\|\{language\}\|\{version\}\|\{package_manager\}\|\{repo_url\}\|\{project_dir\}\|\{install_command\}\|\{verify_command\}\|\{start_command\}\|\{expected_output\}\|\{lint_cmd\}\|\{lint_command\}\|\{typecheck_cmd\}\|\{typecheck_command\}\|\{test_cmd\}\|\{test_command\}\|\{build_cmd\}\|\{build_command\}\|\{e2e_cmd\}\|\{benchmark_cmd\}\|\{format_cmd\}\|\{deploy_command\}\|\{cloud_deploy_command\}\|\{config_file\}\|\{module_1\}\|\{module_2\}\|\{ENV_VAR_1\}\|\{ENV_VAR_2\}\|\{ENV_1\}\|\{ENV_2\}\|\{database\}\|\{additional_tools\}\|\{backend_framework\}\|\{frontend_framework\}\|\{cache\}\|\{storage\}\|\{queue\}\|\{monitoring\}\|\{cicd\}\|\{hosting\}\|\{env_read_pattern\}\|\{debug_print_pattern\}\|\{todo_pattern\}\|\{source_include\}\|\{config_dir\}\|\{sleep_pattern\}\|\{mock_not_called\}\|\{bare_assert_true\}\|\{missing_assert_in_test\}\|\{test_specific_impl\}\|\{env_read_in_test\}\|\{threshold\}\|\{project_rejections\}' docs/ ./CLAUDE.md ./AGENTS.md scripts/check.sh 2>/dev/null
+# Derived from the Setup-time placeholder catalog — update if catalog changes
+grep -rn '\{PROJECT_NAME\}\|\{what are you working on?\}\|\{files most relevant to current task\}\|\{language\}\|\{version\}\|\{package_manager\}\|\{repo_url\}\|\{project_dir\}\|\{install_command\}\|\{verify_command\}\|\{start_command\}\|\{expected_output\}\|\{lint_cmd\}\|\{lint_command\}\|\{typecheck_cmd\}\|\{typecheck_command\}\|\{test_cmd\}\|\{test_command\}\|\{test_cmd_single\}\|\{build_cmd\}\|\{build_command\}\|\{e2e_cmd\}\|\{deploy_command\}\|\{cloud_deploy_command\}\|\{config_file\}\|\{module_1\}\|\{module_2\}\|\{ENV_VAR_1\}\|\{ENV_VAR_2\}\|\{ENV_1\}\|\{ENV_2\}\|\{database\}\|\{additional_tools\}\|\{backend_framework\}\|\{frontend_framework\}\|\{cache\}\|\{storage\}\|\{queue\}\|\{monitoring\}\|\{cicd\}\|\{hosting\}\|\{env_read_pattern\}\|\{debug_print_pattern\}\|\{todo_pattern\}\|\{source_include\}\|\{config_dir\}\|\{sleep_pattern\}\|\{mock_not_called\}\|\{bare_assert_true\}\|\{missing_assert_in_test\}\|\{test_specific_impl\}\|\{env_read_in_test\}\|\{threshold\}\|\{project_rejections\}' docs/ ./CLAUDE.md ./AGENTS.md scripts/check.sh 2>/dev/null
 ```
 This must find **zero** setup-time placeholders. Report any hits as errors.
 
@@ -415,7 +443,7 @@ rm -rf /tmp/repo_template
 
 ## Update/refresh mode
 
-When `docs/` already exists (e.g. the project was set up with an older version of the templates), the AI runs a **zero-questions auto-detect** protocol. No Phases 1–4 questions are asked.
+When `docs/` already exists (e.g. the project was set up with an older version of the templates), the AI runs a **zero-questions auto-detect** protocol. No Rounds 1–4 questions are asked.
 
 ### Detection (Step 0.5)
 
@@ -524,7 +552,7 @@ Only regenerate files that differ from the template source. Use a content-based 
  
  **AI asks** (1 question block):
  ```
- Phase 1 — Project name? [my-fastapi-app] 
+ Round 1 — Project name? [my-fastapi-app] 
  Repo URL? [github.com/user/my-fastapi-app]
  Confirm Python/FastAPI? [Y]
  Database: PostgreSQL? [Y]
@@ -576,6 +604,7 @@ To remove the generated workflow files while preserving runtime content:
 rm -f CLAUDE.md AGENTS.md scripts/check.sh
 
 # Remove template files from docs/ (preserves decisions/, specs/, archive/, plans/)
+# Note: docs/commands/ are canonical copies — they can be regenerated from a fresh install
 rm -f docs/index.md docs/quickstart.md docs/contributing.md \
       docs/code-review.md docs/testing.md docs/architecture.md \
       docs/navigation.md docs/PR-template.md docs/commands/pr.md docs/commands/plan.md docs/commands/audit_pr.md
@@ -602,7 +631,7 @@ rmdir docs/ 2>/dev/null
 - **Clone source first**. Before generating anything, `git clone {TEMPLATE_REPO_URL} /tmp/repo_template` to get the latest `docs_template/`.
 - **Never invent project details**. If detection fails, ask — don't guess (fresh mode) or leave `<!-- TODO -->` (update mode).
 - **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md` — these are the agent instruction files that enforce the plan-first rule.
-- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user which harness they plan to use (Phase 2a). Copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` to the matching directory. Always create `docs/commands/` as the canonical copy.
+- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user which harness they plan to use (Round 2a). Copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` to the matching directory. Always create `docs/commands/` as the canonical copy.
 - **Verify after generation**. If a command fails, flag it but don't block — the project may not have code yet.
 - **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus/scout corrections/task map, architecture design decisions, or phase plan goals.
 - **Preserve exact formatting**. Only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.
