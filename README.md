@@ -45,6 +45,7 @@ project/
 ├── scripts/check.sh            Gate: lint → typecheck → test → grep guards
 ├── CLAUDE.md                   Agent rules: plan-first, TDD, quality
 └── .claude/commands/           /plan + /pr + /audit_pr slash commands
+                                (also .opencode/ .codex/ for your harness)
 ```
 
 These aren't static docs. The agent reads them at the start of every session and writes to them at the end. They stay current because the workflow depends on them.

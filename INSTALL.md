@@ -46,7 +46,7 @@ Inspect the project directory for:
 - **Package manager**: read from config files
 - **Tooling commands**: detect existing lint/test/build scripts from config or `Makefile`
 - **Env vars**: parse `.env.example` if present
-- **Harness dirs**: note presence of `.claude/`, `.opencode/`, `.codex/`
+- **Harness dirs**: scan for all directories listed in the [Harness Catalog (§G)](#g-harness-catalog)
 
 ### 1c. Empty repo check
 
@@ -94,14 +94,22 @@ All tooling commands, grep patterns, and module structure derive from this answe
 
 ### Q3 — Harness (required)
 
+Present the harness options from the [Harness Catalog (§G)](#g-harness-catalog) as a numbered list (Type A first, then Type B):
+
 ```
 Which AI coding harness do you plan to use?
-  1. Claude Code
-  2. OpenCode
-  3. Codex
+  [Type A — slash commands native]
+  1. Claude Code — .claude/commands/
+  2. OpenCode   — .opencode/commands/
+  3. Codex      — .codex/commands/
+
+  [Type B — agent files only (CLAUDE.md/AGENTS.md)]
+  4. GitHub Copilot
+  5. Cursor
+  6. Windsurf
 ```
 
-No "None" option. Without a harness, `/plan`, `/pr`, and `/audit_pr` have no execution surface.
+No "None" option. Without a harness, `/plan`, `/pr`, and `/audit_pr` have no execution surface. Type B harnesses don't support native slash commands, but `docs/commands/` canonical copies still provide the workflow protocols, and the root agent files are read natively by the harness.
 
 ### Derive defaults
 
@@ -124,7 +132,7 @@ Present the plan:
 Empty repo detected. Filling from 3 answers:
   Project: {name}
   Language: {lang}/{framework}
-  Harness: {claude|opencode|codex}
+  Harness: {name from catalog §G} (Type {A|B})
 
 Derived:
   Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
@@ -159,21 +167,27 @@ Note: `{format_cmd}` is derived but not used in any generated template — infor
 
 ### Round 2a — Harness (REQUIRED — never skip)
 
-Scan for `.claude/`, `.opencode/`, `.codex/` directories. Then:
+Scan for all directories listed in the [Harness Catalog (§G)](#g-harness-catalog). Then:
 
-- **If a harness dir exists**: confirm with the user (e.g., "Detected `.claude/` — use Claude Code?"). Update if they correct you.
-- **If NO harness dir exists**: you MUST ask:
+- **If a harness dir exists**: look up the dir in the catalog, confirm with the user (e.g., "Detected `.claude/` — use Claude Code (Type A)?"). Update if they correct you.
+- **If NO harness dir exists**: you MUST ask, presenting the catalog as a numbered list (Type A first, then Type B):
 
 ```
-No AI harness directory detected (.claude/, .opencode/, .codex/).
+No AI harness directory detected.
 Which AI coding harness do you plan to use?
-  1. Claude Code — creates .claude/commands/pr.md, .claude/commands/plan.md, .claude/commands/audit_pr.md
-  2. OpenCode   — creates .opencode/commands/pr.md, .opencode/commands/plan.md, .opencode/commands/audit_pr.md
-  3. Codex      — creates .codex/commands/pr.md, .codex/commands/plan.md, .codex/commands/audit_pr.md
-  4. None       — only docs/commands/ (canonical copies)
+  [Type A — slash commands: pr.md, plan.md, audit_pr.md]
+  1. Claude Code — creates .claude/commands/
+  2. OpenCode   — creates .opencode/commands/
+  3. Codex      — creates .codex/commands/
+
+  [Type B — agent files only (CLAUDE.md/AGENTS.md)]
+  4. GitHub Copilot
+  5. Cursor
+  6. Windsurf
+  7. None — only docs/commands/ (canonical copies)
 ```
 
-If user selects 1–3, create the directory during generation ([§6](#6--generate-files)). If 4, skip harness install.
+If user selects 1–3 (Type A), create the commands directory during generation ([§6](#6--generate-files)). If 4–6 (Type B), generate only the root agent file(s) listed in the catalog — no commands directory. If 7, skip harness install entirely.
 
 ### Round 3 — Structure (derive, confirm)
 
@@ -200,8 +214,8 @@ Ready to generate:
   All template files from docs_template/ will be generated
   Placeholders to fill: {N}
   Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
-  Harness: {claude|opencode|codex|none}
-  Output: docs/ (all), ./CLAUDE.md, ./AGENTS.md, scripts/check.sh, {harness}/commands/
+  Harness: {name from catalog §G} (Type {A|B}){ if none: "None"}
+  Output: docs/ (all), ./CLAUDE.md{ or ./AGENTS.md, or both — per catalog §G}, scripts/check.sh{ + {Dir}/commands/ if Type A}
 
 Proceed? (yes/no)
 ```
@@ -238,7 +252,7 @@ Use content-based comparison (not timestamps). For each file:
 | `scripts/check.sh` | **Re-substitute**: regenerate with current tooling/grep values. |
 | `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. Entirely runtime content. |
 | Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate with current `{PROJECT_NAME}`, `{threshold}`. Warn if custom task routing may conflict. |
-| Harness command files (`.claude/commands/`, `.opencode/commands/`, `.codex/commands/`) | **Overwrite unconditionally** from template if harness dir exists. Template is always authoritative for commands. |
+| Harness command files (`{Dir}/commands/` for Type A harnesses — see catalog §G) | **Overwrite unconditionally** from template if the harness dir exists and is Type A. Template is always authoritative for commands. |
 | `docs/commands/` (canonical copies) | **Create if missing**, regenerate if outdated. Not just fresh-install — update mode backfills these too. |
 
 ### 5c. Approval gate (with explicit harness prompt)
@@ -252,7 +266,7 @@ Update summary:
   Files being regenerated: {N}
   Files untouched: {N}
 
-Harness: {.claude/ detected → command files will be overwritten | none detected}
+Harness: {.claude/ detected → Type A, command files will be overwritten | .cursor/ detected → Type B, agent files only | none detected}
 
 Proceed? (yes/no)
 ```
@@ -260,10 +274,10 @@ Proceed? (yes/no)
 **If no harness dirs exist**, add this explicit line at the end of the summary:
 
 ```
-**No harness dirs detected.** Reply "claude", "opencode", or "codex" to add harness command files (pr.md, plan.md, audit_pr.md).
+**No harness dirs detected.** Reply with a harness ID from the catalog (§G) — e.g. "claude", "opencode", "codex", "copilot", "cursor", "windsurf" — to add harness infrastructure.
 ```
 
-**Do not proceed without explicit user confirmation.** If the user replies with a harness name, create the directory and copy command files, then proceed. If they say no, ask what to change.
+**Do not proceed without explicit user confirmation.** If the user replies with a harness ID from the catalog, create the directory (Type A) or note it as supported (Type B), then proceed. If they say no, ask what to change.
 
 ### 5d. Apply → Verify → Cleanup
 
@@ -343,20 +357,26 @@ If any command placeholder resolves to `(none)`, substitute with `true` (no-op t
 
 ### 6f. Special: root agent files
 
-- Copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md`. Substitute `{PROJECT_NAME}`, `{threshold}`.
-- Copy `docs_template/AGENTS-template.md` → `./AGENTS.md`. Substitute `{PROJECT_NAME}`, `{threshold}`.
+Generate only the file(s) that the selected harness natively reads, per the [Harness Catalog (§G)](#g-harness-catalog):
+
+- If the harness reads `CLAUDE.md`: copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md`. Substitute `{PROJECT_NAME}`, `{threshold}`.
+- If the harness reads `AGENTS.md`: copy `docs_template/AGENTS-template.md` → `./AGENTS.md`. Substitute `{PROJECT_NAME}`, `{threshold}`.
+- If the harness reads both, generate both.
+- If the user selects "None", generate both as reference.
 
 ### 6g. Special: harness command files
 
-After generating `docs/commands/pr.md`, `docs/commands/plan.md`, `docs/commands/audit_pr.md` (canonical copies), copy them to the harness's native commands directory:
+After generating `docs/commands/pr.md`, `docs/commands/plan.md`, `docs/commands/audit_pr.md` (canonical copies), copy them to the harness's native commands directory for Type A harnesses only:
 
-| Harness | Command dir | Condition |
-|---------|-------------|-----------|
-| Claude Code | `.claude/commands/` | `.claude/` exists or user selected it |
-| OpenCode | `.opencode/commands/` | `.opencode/` exists or user selected it |
-| Codex | `.codex/commands/` | `.codex/` exists or user selected it |
+| Harness | Dir | Condition |
+|---------|-----|-----------|
+| Claude Code | `.claude/commands/` | Type A, dir exists or user selected it |
+| OpenCode | `.opencode/commands/` | Type A, dir exists or user selected it |
+| Codex | `.codex/commands/` | Type A, dir exists or user selected it |
 
-Create the harness directory if needed (`mkdir -p .claude/commands`). If user selected "None" in Round 2a, skip harness install.
+**Type B harnesses** (Copilot, Cursor, Windsurf): skip this step — no commands directory is created. These harnesses read `CLAUDE.md`/`AGENTS.md` directly and don't support custom slash commands.
+
+Create the harness directory if needed (`mkdir -p {Dir}/commands`). If user selected "None" in Round 2a, skip harness install.
 
 ### 6h. For placeholders with no available value
 
@@ -686,7 +706,7 @@ Proceed? (yes/no)
 - **Clone source first**: before generating anything, `git clone {TEMPLATE_REPO_URL} /tmp/repo_template` to get the latest `docs_template/`.
 - **Never invent project details**: if detection fails, ask — don't guess (fresh mode) or leave `<!-- TODO -->` (update mode).
 - **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md`.
-- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user (Round 2a). Always create `docs/commands/` as the canonical copy.
+- **Install harness commands**: if a harness dir exists, confirm against the catalog (§G). If none exists, ask the user (Round 2a). Always create `docs/commands/` as the canonical copy. Type A harnesses get slash commands; Type B get agent files only.
 - **Verify after generation**: if a command fails, flag it but don't block — the project may not have code yet. On empty repos, check.sh failures are expected.
 - **Leave runtime placeholders intact**: only substitute the setup-time catalog listed in [Reference §A](#a-placeholder-catalog). Never touch ADR fields, spec fields, PR implementation sections, navigation current-focus/scout corrections/task map, architecture design decisions, or phase plan goals.
 - **Preserve exact formatting**: only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.
@@ -695,7 +715,7 @@ Proceed? (yes/no)
 ### Fresh install mode
 
 - **Never skip questions**: even if defaults seem obvious, present them for confirmation.
-- **Ask about harness (Round 2a)**: if no `.claude/`, `.opencode/`, or `.codex/` directories are detected, ask the user. Do not assume "None" silently.
+- **Ask about harness (Round 2a)**: if no harness directories from the catalog (§G) are detected, ask the user. Do not assume "None" silently.
 - **Never overwrite `docs/` if it already exists**: warn and suggest switching to update mode.
 - **Wait for approval**: after deriving all defaults, present the full plan and wait for explicit user confirmation before generating files.
 
@@ -723,10 +743,18 @@ rm -f docs/index.md docs/quickstart.md docs/contributing.md \
       docs/code-review.md docs/testing.md docs/architecture.md \
       docs/navigation.md docs/PR-template.md docs/commands/pr.md docs/commands/plan.md docs/commands/audit_pr.md
 
-# Remove harness command files (if any)
+# Remove harness command files (Type A harnesses)
 rm -f .claude/commands/pr.md .claude/commands/plan.md .claude/commands/audit_pr.md \
       .opencode/commands/pr.md .opencode/commands/plan.md .opencode/commands/audit_pr.md \
       .codex/commands/pr.md .codex/commands/plan.md .codex/commands/audit_pr.md
+
+# Remove harness directories (empty ones only)
+rmdir .claude/commands 2>/dev/null
+rmdir .claude/ 2>/dev/null
+rmdir .opencode/commands 2>/dev/null
+rmdir .opencode/ 2>/dev/null
+rmdir .codex/commands 2>/dev/null
+rmdir .codex/ 2>/dev/null
 
 # Clean up empty directories
 rmdir docs/commands 2>/dev/null
@@ -736,3 +764,29 @@ rmdir docs/ 2>/dev/null
 **Preserved**: `docs/decisions/`, `docs/specs/`, `docs/archive/`, `docs/plans/` — all runtime content.
 
 **Removed**: root agent files (`CLAUDE.md`, `AGENTS.md`), `scripts/check.sh`, generated template files, harness command files.
+
+---
+
+## G. Harness catalog
+
+| ID | Name | Dir | Type | Root agent file(s) | Slash commands |
+|----|------|-----|------|--------------------|----------------|
+| claude | Claude Code | `.claude/` | A | `CLAUDE.md` | `.claude/commands/` |
+| opencode | OpenCode | `.opencode/` | A | `AGENTS.md` | `.opencode/commands/` |
+| codex | Codex | `.codex/` | A | `AGENTS.md` | `.codex/commands/` |
+| copilot | GitHub Copilot | `.github/` | B | `CLAUDE.md`, `AGENTS.md` | — |
+| cursor | Cursor | `.cursor/` | B | `CLAUDE.md`, `AGENTS.md` | — |
+| windsurf | Windsurf | `.windsurf/` | B | `AGENTS.md` | — |
+
+**Type A** — commands-capable: root agent file(s) + command files copied from `docs/commands/` into `{Dir}/commands/`. `/pr`, `/plan`, `/audit_pr` execute natively as slash commands.
+
+**Type B** — agent-files-only: root agent file(s) generated. No commands directory created — these harnesses read `CLAUDE.md`/`AGENTS.md` directly. `docs/commands/` canonical copies remain as protocol reference.
+
+### Protocol rules
+
+- **Detection** (§1b, §4 R2a): scan for all `{Dir}` values from this catalog.
+- **Enumeration**: generate numbered lists from catalog entries, Type A first, then Type B. Never hardcode harness names in protocol text.
+- **Confirmation** (§4 R2a, §5c): if a `{Dir}` matches a catalog entry, confirm with user. If none match, present full catalog for selection.
+- **Agent file generation** (§6f): only generate the file(s) listed in "Root agent file(s)" column for the selected harness.
+- **Command generation** (§6g): only Type A harnesses get a `{Dir}/commands/` directory. Type B and "None" skip it.
+- **Cleanup** (§F): iterate catalog entries to `rm -f {Dir}/commands/*.md`.
