@@ -2,56 +2,57 @@
 
 ## Plan-first rule (non-negotiable)
 
-For **every feature or bug fix**, before writing any code:
-
-1. **Create PR plan doc** in `docs/plans/PR{N}-{desc}.md` using `docs/plans/PR-prompt-template.md`
-2. **Update `docs/plans/progress.md`** — add PR to table
-3. **Update `docs/architecture.md`** if this changes module boundaries, data flow, or tech stack
-4. **Update `README.md`** if this changes setup, usage, or public API
-5. Write code, then follow the enforcement flow in `docs/commands/pr.md` (check.sh → behavioral self-review → commit → auto merge)
-
-For trivial tasks (typo fix, formatting, one-line change), skip the PR plan but still log in progress.md.
+No code changes without a plan. Run `/plan <description>` first for any feature or bug fix.
+Then `/pr` to implement. Trivial changes (typos, formatting) skip `/plan` but still log in progress.md.
 
 ## Session protocol
 
 ### Start
-1. Read `docs/index.md` → find current work
-2. Read `docs/plans/progress.md` → check blockers, active PRs
-3. Read `docs/archive/learnings.md` (last 30 lines) → avoid repeating past mistakes
-4. Update `Current focus` in `docs/navigation.md`
-
-### During
-- Search before reading: grep/glob first, read only what you need
-- Match existing conventions: read neighboring files before writing new code
-- No speculative features: only code needed for the stated goal
-- No unrelated refactoring: surgical changes only
+1. Read `docs/index.md`
+2. Read `docs/plans/progress.md`
+3. Read `docs/navigation.md`
+4. Read `docs/archive/learnings.md` (last 30 lines)
 
 ### Close
-1. Update `Current focus` in `docs/navigation.md`
-2. Log learnings to `docs/archive/learnings.md` (decisions, risks, anti-patterns, bugs, gotchas)
-3. Update `docs/plans/progress.md` (PR status, session log)
+1. Update `docs/navigation.md` — Current focus + Scout corrections (grep shortcuts, anti-patterns, better search strategies)
+2. Log learnings to `docs/archive/learnings.md`
+3. Update `docs/plans/progress.md`
 
 ## Task routing
 
 | Trigger | Action |
 |---------|--------|
-| `/pr <description>` or "create a PR" | Run full atomic PR workflow: plan → implement → quality gates → behavioral self-review → commit, push & merge to main. See `docs/commands/pr.md` for the 5-phase protocol. Never skip a phase. |
-| New feature or bug fix | Create PR plan doc first, then code |
+| `/plan <description>` or "plan for" | Plan only: create spec, phase plan, PR plans, ADRs. Commit docs to main. No code. See `docs/commands/plan.md`. |
+| `/pr <N\|keywords>` or `/pr` or "create a PR" | Execute one planned PR. Requires prior `/plan`. `/pr` alone picks next in queue. See `docs/commands/pr.md` for the 4-phase protocol. Never skip a phase. |
+| `/audit_pr <N\|all>` or "audit PR" | Audit PRs for security, performance, bugs, logic holes, dead code, unwired code. Propose fixes, apply with quality gates, squash merge to main. See `docs/commands/audit_pr.md`. |
+| New feature or bug fix | Run `/plan` first, then `/pr` |
 | Quick PR (no plan doc needed) | Trivial changes only: typos, formatting, one-liners. Still run quality gates. |
-| Debug / investigate | Run tests to reproduce, grep for root cause |
-| Architecture decision | Write ADR in `docs/decisions/YYYY-MM-DD-{title}.md` |
-| Code review | Run `bash scripts/check.sh` + behavioral self-review (see Quality Gates below) |
-| Writing tests | Follow `docs/testing.md` authoring guide |
-| Implementation done | Follow `docs/commands/pr.md` enforcement protocol in order (quality gates → code review → commit → auto merge — never skip) |
-| Phase complete | Run `bash scripts/check.sh`, update progress |
 
 ## Quality Gates (self-check every PR before claiming done)
+
+### Correctness
+
+| Rule | What it means |
+|------|--------------|
+| **No logic holes** | Every branch covered. Edge cases handled. Invariants preserved. No inverted guards. |
+| **No (potential) bugs** | Null/undefined safety. Correct types. No race conditions. No off-by-one errors. |
+| **No unwired code** | Every function/component/endpoint is called. Every route is connected. |
+| **No dead/orphaned code** | No unreachable paths. No unused imports. No variables assigned but never read. |
+
+### Quality
 
 | Rule | What it means |
 |------|--------------|
 | **Surgical** | Diff touches only files for stated goal. No unrelated refactoring. |
 | **Explicit** | Error messages actionable. Types explicit. Every external call has error handling. Timeouts on network calls. |
-| **Minimal** | No speculative features. No dead code. No commented-out blocks. |
+| **Minimal** | No speculative features. No commented-out blocks. |
+| **Not duplicated** | Same logic in one place. Shared utility over copy-paste. |
+| **Not under-optimized** | No missing memo/cache on pure functions. No redundant API calls. No unbatched writes. |
+
+### Safety
+
+| Rule | What it means |
+|------|--------------|
 | **Conventions** | Matches neighboring file patterns. Uses existing utilities before new code. |
 | **Covered** | New code ≥{threshold}% coverage. Every branch tested. |
 | **Secure** | No secrets, tokens, or credentials. Inputs validated at boundaries. Resources cleaned up. |

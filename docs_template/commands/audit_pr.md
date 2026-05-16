@@ -8,7 +8,7 @@ Also trigger on "audit PR", "audit pr", "audit pull request" (verbatim match in 
 
 ## Precondition
 
-None. Standalone command. `/audit_pr` audits open PRs by default. Specific PR numbers, merged PRs, or "all" (open + merged) can be requested in `<description>`.
+None. Standalone command. `/audit_pr` audits both open and merged PRs by default. Specific PR numbers, "open only", or "merged only" can be requested in `<description>`.
 
 ## Rules
 
@@ -42,7 +42,7 @@ Create a todo list:
 
 ## Step 0 — Parse target & fetch PRs
 
-1. Derive `slug`: lowercase `<description>`, replace spaces with hyphens, strip special chars, max 40 chars. If `<description>` is "all" or empty, use `slug: all-open-prs`.
+1. Derive `slug`: lowercase `<description>`, replace spaces with hyphens, strip special chars, max 40 chars. If `<description>` is "all" or empty, use `slug: all-prs`.
 
 2. Read `docs/plans/plan-state-template.md` for state file structure reference.
 
@@ -57,15 +57,18 @@ Create a todo list:
    - If NO → continue to step 5.
 
 5. **Parse PR target** from `<description>`:
-   - Empty or "all" → `gh pr list --state open --base main --json number,title,headRefName,state`
-   - "all merged" or "merged" → `gh pr list --state merged --base main --json number,title,headRefName,state`
-   - "all+merged" or "everything" → both open and merged
-   - Number(s) like "42" or "1,3,5" → `gh pr view <N> --json number,title,headRefName,state` per number, comma-separated
-   - If user asks for merged PRs explicitly (e.g. `/audit_pr 42 merged`) → include merged state filter
+    - Empty or "all" → fetch both open and merged PRs. Run TWO queries, combine results (deduplicate by PR number):
+      - `gh pr list --state open --base main --json number,title,headRefName,state`
+      - `gh pr list --state merged --base main --json number,title,headRefName,state`
+    - "open" or "open only" → `gh pr list --state open --base main --json number,title,headRefName,state`
+    - "merged" or "merged only" → `gh pr list --state merged --base main --json number,title,headRefName,state`
+    - Number(s) like "42" or "1,3,5" → `gh pr view <N> --json number,title,headRefName,state` per number, regardless of state
+    - If user asks for merged PRs explicitly (e.g. `/audit_pr 42 merged`) → include merged state filter
 
 6. **Validate results**:
-   - If zero PRs returned → stop: "No matching PRs found."
-   - Store PR list (number, title, branch, state) in state file `prs` field.
+    - If zero PRs returned from `gh pr list` → fall back to `docs/plans/progress.md` (or `docs_template/plans/progress.md`). Scan the PR Status table for rows with status `✅ Merged` or `🚧 In Progress` and extract PR numbers. If found, run `gh pr view <N> --json number,title,headRefName,state` per number.
+    - If still zero PRs found → stop: "No matching PRs found."
+    - Store PR list (number, title, branch, state) in state file `prs` field.
 
 7. Present: "Found {N} PR(s): {PR_1} ({title_1}), {PR_2} ({title_2}), ..."
 
@@ -266,13 +269,7 @@ Process fixes in the order from Step A2, grouped by file:
    - FAIL → fix failures. Re-run. Up to 3 auto-retries.
    - If still failing after 3 retries → present failures, ask: "Quality gate still failing after 3 attempts. Proceed anyway or abort?"
 
-2. Behavioral self-review against Quality Gates:
-   - **Surgical**: diff touches only audited files (no unrelated changes)
-   - **Explicit**: error handling added where fix changed behavior
-   - **Minimal**: no new speculative code, no commented-out blocks
-   - **Conventions**: matches neighboring file patterns
-   - **Covered**: new/changed code has tests
-   - **Secure**: no secrets, inputs validated
+2. Behavioral self-review against all Quality Gates in `AGENTS.md` (Correctness, Quality, Safety).
 
 3. Fix any self-review failures.
 

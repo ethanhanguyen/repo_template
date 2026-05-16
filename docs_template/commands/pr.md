@@ -128,7 +128,7 @@ For each group in order:
 ## Phase 3 — Quality gates + behavioral self-review
 
 1. Run `bash scripts/check.sh` — all gates must pass
-2. Self-review against Quality Gates in `AGENTS.md` (Surgical, Explicit, Minimal, Conventions, Covered, Secure)
+2. Self-review against all Quality Gates in `AGENTS.md`
 3. Fix any failures before proceeding
 
 *→ Mark Phase 3 todo complete, mark Phase 4 in_progress*
