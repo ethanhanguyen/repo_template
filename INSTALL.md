@@ -103,7 +103,7 @@ Before any other work, the AI scans the target project directory:
 
 ### Runtime (filled by developers during daily use — NOT by this script)
 
-Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `plans/plan-state-template.md`, `archive/learnings.md`, `commands/pr.md`, `commands/plan.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's task map, always-verify list, scout corrections, and commands' workflow instructions are also runtime — left with placeholder hints intact.
+Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md`, `plans/plan-state-template.md`, `archive/learnings.md`, `commands/pr.md`, `commands/plan.md`, `commands/audit_pr.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's task map, always-verify list, scout corrections, and commands' workflow instructions are also runtime — left with placeholder hints intact.
 
 ---
 
@@ -197,13 +197,13 @@ Ask these questions in order, then derive all other defaults from the lookup tab
 ```
 No AI harness directory detected (.claude/, .opencode/, .codex/).
 Which AI coding harness do you plan to use?
-  1. Claude Code — I'll create .claude/commands/pr.md and .claude/commands/plan.md
-  2. OpenCode   — I'll create .opencode/commands/pr.md and .opencode/commands/plan.md
-  3. Codex      — I'll create .codex/commands/pr.md and .codex/commands/plan.md
-  4. None       — only docs/commands/pr.md and docs/commands/plan.md (canonical copies)
+  1. Claude Code — I'll create .claude/commands/pr.md, .claude/commands/plan.md, and .claude/commands/audit_pr.md
+  2. OpenCode   — I'll create .opencode/commands/pr.md, .opencode/commands/plan.md, and .opencode/commands/audit_pr.md
+  3. Codex      — I'll create .codex/commands/pr.md, .codex/commands/plan.md, and .codex/commands/audit_pr.md
+  4. None       — only docs/commands/pr.md, docs/commands/plan.md, and docs/commands/audit_pr.md (canonical copies)
 ```
 
-If the user selects 1–3, create the directory (e.g. `mkdir -p .claude/commands`) and copy both `commands/pr.md` and `commands/plan.md` there during Step 3. `docs/commands/pr.md` and `docs/commands/plan.md` are always created as the canonical copies. If the user selects 4 (None), skip harness-specific install.
+If the user selects 1–3, create the directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` there during Step 3. `docs/commands/pr.md`, `docs/commands/plan.md`, and `docs/commands/audit_pr.md` are always created as the canonical copies. If the user selects 4 (None), skip harness-specific install.
 
 **Phase 3 — Structure** (derived, confirm): `{config_file}`, `{module_1}`/`{module_2}`, tech stack (`{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`), env vars (parse `.env.example` if present), `{additional_tools}`.
 
@@ -220,7 +220,7 @@ Ready to generate:
   Placeholders to fill: {N}
   Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
   Harness: {claude|opencode|codex|none}
-  Files will be created in: docs/ (all), ./CLAUDE.md, ./AGENTS.md, {harness}/commands/pr.md, {harness}/commands/plan.md
+  Files will be created in: docs/ (all), ./CLAUDE.md, ./AGENTS.md, {harness}/commands/pr.md, {harness}/commands/plan.md, {harness}/commands/audit_pr.md
 
 Proceed? (yes/no)
 ```
@@ -248,6 +248,7 @@ plans/plan-state-template.md
 PR-template.md
 commands/pr.md
 commands/plan.md
+commands/audit_pr.md
 ```
 
 **Files needing partial substitution** (commands/patterns/thresholds substituted; content sections left as runtime placeholders):
@@ -270,16 +271,16 @@ testing.md         → substitute {PROJECT_NAME} + all grep patterns
 
 **Special: check.sh** — copy `docs_template/scripts/check.sh` → `scripts/check.sh` (project root, not docs/). Substitute `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`. If any command placeholder resolves to `(none)`, substitute it with `true` (no-op that always passes). Make executable with `chmod +x scripts/check.sh`. This is the single automated gate command.
 
-**Special: Harness command installation** — After generating `docs/commands/pr.md` and `docs/commands/plan.md`, copy the command files to the harness's native commands directory. This makes `/pr` and `/plan` work as native slash commands:
+**Special: Harness command installation** — After generating `docs/commands/pr.md`, `docs/commands/plan.md`, and `docs/commands/audit_pr.md`, copy the command files to the harness's native commands directory. This makes `/pr`, `/plan`, and `/audit_pr` work as native slash commands:
 
 | Harness | Command directory | Condition |
 |---------|-------------------|-----------|
-| Claude Code | `.claude/commands/pr.md`, `.claude/commands/plan.md` | `.claude/` exists or user selected it |
-| OpenCode | `.opencode/commands/pr.md`, `.opencode/commands/plan.md` | `.opencode/` exists or user selected it |
-| Codex | `.codex/commands/pr.md`, `.codex/commands/plan.md` | `.codex/` exists or user selected it |
-| Generic | `docs/commands/pr.md`, `docs/commands/plan.md` | Always created (canonical copies) |
+| Claude Code | `.claude/commands/pr.md`, `.claude/commands/plan.md`, `.claude/commands/audit_pr.md` | `.claude/` exists or user selected it |
+| OpenCode | `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.opencode/commands/audit_pr.md` | `.opencode/` exists or user selected it |
+| Codex | `.codex/commands/pr.md`, `.codex/commands/plan.md`, `.codex/commands/audit_pr.md` | `.codex/` exists or user selected it |
+| Generic | `docs/commands/pr.md`, `docs/commands/plan.md`, `docs/commands/audit_pr.md` | Always created (canonical copies) |
 
-If no harness directory exists, **ask the user** during Phase 2a which harness they plan to use (see above). Create the harness directory (e.g. `mkdir -p .claude/commands`) and copy both `commands/pr.md` and `commands/plan.md` there. If the user selects "None", create only `docs/commands/`. The canonical copies in `docs/commands/` work as a reference all harnesses can read.
+If no harness directory exists, **ask the user** during Phase 2a which harness they plan to use (see above). Create the harness directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` there. If the user selects "None", create only `docs/commands/`. The canonical copies in `docs/commands/` work as a reference all harnesses can read.
 
 **Special: CLAUDE-template.md** — copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`. This file enforces the **plan-first rule**: before any code change, create a PR plan doc and update progress/architecture/README first.
 
@@ -329,12 +330,12 @@ Only regenerate files that differ from the template source. Use a content-based 
 | `index.md`, `quickstart.md`, `contributing.md`, `code-review.md`, `testing.md` | **Re-substitute**: re-derive all setup-time placeholders from current repo state. Apply to a fresh copy from the template. Overwrite the generated file. |
 | `architecture.md` | **Partial re-substitute**: update `{PROJECT_NAME}` + tech stack table. Preserve `{system_overview}`, `{data_flow_diagram}`, module boundaries, and design decisions — these are runtime content filled by developers. |
 | `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve all scout corrections, task map, and always-verify list. |
-| `PR-template.md`, `commands/pr.md`, `commands/plan.md`, `plans/plan-state-template.md` | **Runtime only** (copied as-is from template if missing). These files no longer contain setup-time placeholders. |
+| `PR-template.md`, `commands/pr.md`, `commands/plan.md`, `commands/audit_pr.md`, `plans/plan-state-template.md` | **Runtime only** (copied as-is from template if missing). These files no longer contain setup-time placeholders. |
 | `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{threshold}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
 | `scripts/check.sh` | **Re-substitute**: regenerate from `docs_template/scripts/check.sh` with current tooling values (`{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`). |
 | `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
 | Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate from `CLAUDE-template.md` / `AGENTS-template.md` with current tooling values. Preserve any custom task routing the user may have added — warn if template changed and list conflicts. |
-| Harness command files (`.claude/commands/pr.md`, `.claude/commands/plan.md`, `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.codex/commands/pr.md`, `.codex/commands/plan.md`) | **Copy/override unconditionally if harness dir exists**. Template source is always authoritative for commands — no diff needed. Overwrite existing harness copies directly from `/tmp/repo_template/docs_template/commands/pr.md` and `plan.md`. **If no harness dir exists**: no action (skip; canonical copies in `docs/commands/` are not created in update mode — they are fresh-install only). Include a harness note in the approval summary so the user can request a specific harness if desired. |
+| Harness command files (`.claude/commands/pr.md`, `.claude/commands/plan.md`, `.claude/commands/audit_pr.md`, `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.opencode/commands/audit_pr.md`, `.codex/commands/pr.md`, `.codex/commands/plan.md`, `.codex/commands/audit_pr.md`) | **Copy/override unconditionally if harness dir exists**. Template source is always authoritative for commands — no diff needed. Overwrite existing harness copies directly from `/tmp/repo_template/docs_template/commands/pr.md`, `plan.md`, and `audit_pr.md`. **If no harness dir exists**: no action (skip; canonical copies in `docs/commands/` are not created in update mode — they are fresh-install only). Include a harness note in the approval summary so the user can request a specific harness if desired. |
 
 ### Update protocol steps
 
@@ -437,10 +438,10 @@ rm -f CLAUDE.md AGENTS.md scripts/check.sh
 # Remove template files from docs/ (preserves decisions/, specs/, archive/, plans/)
 rm -f docs/index.md docs/quickstart.md docs/contributing.md \
       docs/code-review.md docs/testing.md docs/architecture.md \
-      docs/navigation.md docs/PR-template.md docs/commands/pr.md docs/commands/plan.md
+      docs/navigation.md docs/PR-template.md docs/commands/pr.md docs/commands/plan.md docs/commands/audit_pr.md
 
 # Remove harness command files (if any)
-rm -f .claude/commands/pr.md .claude/commands/plan.md .opencode/commands/pr.md .opencode/commands/plan.md .codex/commands/pr.md .codex/commands/plan.md
+rm -f .claude/commands/pr.md .claude/commands/plan.md .claude/commands/audit_pr.md .opencode/commands/pr.md .opencode/commands/plan.md .opencode/commands/audit_pr.md .codex/commands/pr.md .codex/commands/plan.md .codex/commands/audit_pr.md
 
 # Clean up empty directories
 rmdir docs/commands 2>/dev/null
@@ -461,7 +462,7 @@ rmdir docs/ 2>/dev/null
 - **Clone source first**. Before generating anything, `git clone {TEMPLATE_REPO_URL} /tmp/repo_template` to get the latest `docs_template/`.
 - **Never invent project details**. If detection fails, ask — don't guess (fresh mode) or leave `<!-- TODO -->` (update mode).
 - **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md` — these are the agent instruction files that enforce the plan-first rule.
-- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user which harness they plan to use (Phase 2a). Copy `commands/pr.md` and `commands/plan.md` to the matching directory. Always create `docs/commands/` as the canonical copy.
+- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user which harness they plan to use (Phase 2a). Copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` to the matching directory. Always create `docs/commands/` as the canonical copy.
 - **Verify after generation**. If a command fails, flag it but don't block — the project may not have code yet.
 - **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus/scout corrections/task map, architecture design decisions, or phase plan goals.
 - **Preserve exact formatting**. Only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.

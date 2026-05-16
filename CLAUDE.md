@@ -29,6 +29,7 @@ Trivial tasks (typos, formatting) skip step 1 but still log in progress.md.
 |---------|--------|
 | `/plan <description>` or "plan for" | Plan only: create spec, phase plan, PR plans, ADRs. Commit docs to main. No code. See `docs_template/commands/plan.md`. |
 | `/pr <N\|keywords>` or `/pr` or "create a PR" | Execute one planned PR. Requires prior `/plan`. `/pr` alone picks next in queue. See `docs_template/commands/pr.md` for the 4-phase protocol. Never skip a phase. |
+| `/audit_pr <N\|all>` or "audit PR" | Audit PRs for security, performance, bugs, logic holes, dead code, unwired code. Propose fixes, apply with quality gates, squash merge to main. See `docs_template/commands/audit_pr.md`. |
 | New feature or bug fix | Run `/plan` first, then `/pr` |
 | Quick PR (no plan doc needed) | Trivial changes only: typos, formatting, one-liners. Still run quality gates. |
 
