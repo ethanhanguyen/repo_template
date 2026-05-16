@@ -117,7 +117,7 @@ For each group in order:
 
 ### 2c. Integration check
 
-1. Run full test suite: `{test_cmd}`
+1. Run the full test suite (see your test command in `docs/quickstart.md`)
 2. If failures → fix sequentially in parent session
 3. Green → proceed to Phase 3
 
