@@ -66,12 +66,6 @@ Expected output:
 docker compose up -d
 ```
 
-## Cloud deploy (if applicable)
-
-```bash
-{cloud_deploy_command}
-```
-
 ## Next steps
 
 - Read [architecture.md](./architecture.md) for system overview

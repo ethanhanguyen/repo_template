@@ -1,4 +1,4 @@
-# INSTALL.md — AI-Driven Workflow Setup
+# INSTALL.md
 
 ## How this works
 
@@ -17,76 +17,109 @@ TEMPLATE_DIR       = docs_template/
 
 The AI clones `TEMPLATE_REPO_URL` into a temp directory (e.g. `/tmp/repo_template`), reads all files in `TEMPLATE_DIR`, and uses them to generate output. After generation, the temp clone is deleted.
 
-### Decision flow (AI reads this first)
+## Decision flow (read this first)
 
 ```
 Repo scan
-  ├─ No config AND no src/ AND no docs/ → Empty repo protocol (3 questions)
-  ├─ Config or src/ exists, no docs/    → Fresh install (Rounds 1–4 + approval)
-  └─ docs/ already exists               → Update/refresh mode (zero questions)
+  ├─ No config AND no src/ AND no docs/ → Empty repo protocol (§3)
+  ├─ Config or src/ exists, no docs/    → Fresh install protocol (§4)
+  └─ docs/ already exists               → Update/refresh protocol (§5)
 ```
-
-See the [Example sections](#example-empty-repo-3-questions) at the end for concrete walkthroughs.
 
 ---
 
-## Protocol overview
+# EXECUTION PROTOCOL
 
-### Mode detection (run first)
+## §1 — Mode detection (run first)
 
-Before any other work, the AI scans the target project directory:
+Before any other work, scan the target project directory:
 
-1. **Does `docs/` already exist?**
-   - **No** → **Fresh install mode** (interactive, Rounds 1–4)
-   - **Yes** → **Update/refresh mode** (zero questions, auto-detect). See [Update/refresh mode](#updaterefresh-mode) section below.
+### 1a. Does `docs/` exist?
 
-2. **Auto-detect from repo state** (both modes):
-   - Language/framework: inspect `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, `build.gradle`, `mix.exs`, etc.
-   - Package manager: read from config files
-   - Tooling commands: detect existing lint/test/build scripts from config or Makefile
-   - Env vars: parse `.env.example` if present
-    - Harness directory: note presence/absence of `.claude/`, `.opencode/`, `.codex/` (actual question asked later in Round 2a)
+- **No** → fresh install or empty repo (check §1c below first)
+- **Yes** → update/refresh mode. Jump to [§5 — Update/refresh protocol](#5--updaterefresh-protocol).
 
-#### Empty repo detection
+### 1b. Auto-detect from repo state
 
-Before any questions, scan the repo. If ALL these are true:
+Inspect the project directory for:
+- **Language/framework**: `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, `build.gradle`, `mix.exs`, etc.
+- **Package manager**: read from config files
+- **Tooling commands**: detect existing lint/test/build scripts from config or `Makefile`
+- **Env vars**: parse `.env.example` if present
+- **Harness dirs**: note presence of `.claude/`, `.opencode/`, `.codex/`
+
+### 1c. Empty repo check
+
+If ALL these are true, the repo is **empty**:
 - No `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`, `build.gradle`, `mix.exs`, or similar project config
 - No `src/`, `lib/`, `cmd/`, `app/`, or equivalent source directory
 - No `.env.example`
 - No existing `docs/`
 
-→ Mark the repo as **empty** and enter the **empty repo protocol** below (skip Rounds 1–4).
+→ **Empty repo protocol** ([§3](#3--empty-repo-protocol)).
 
-If at least a config file OR source directory exists, proceed with standard Rounds 1–4.
+If at least a config file OR source directory exists → **Fresh install protocol** ([§4](#4--fresh-install-protocol)).
 
-### Fresh install protocol
+---
 
-#### Empty repo protocol (skip to this when repo is empty)
+## §2 — Clone source & inventory
+
+Run this regardless of mode:
+
+```bash
+git clone {TEMPLATE_REPO_URL} /tmp/repo_template
+```
+
+Read every file in `docs_template/`. Build a map: file → each `{PLACEHOLDER}` found. Cross-reference against the Placeholder Catalog ([Reference §A](#a-placeholder-catalog)) to identify setup-time vs runtime placeholders.
+
+---
+
+## §3 — Empty repo protocol
 
 Only 3 questions. Refuse to proceed without answers to Q1 and Q2.
 
-**Q1 — Project name** (required, no default):
+### Q1 — Project name (required, no default)
+
 ```
 What is the project name?
 ```
 
-**Q2 — Language and framework** (required, no default):
+### Q2 — Language and framework (required, no default)
+
 ```
 What language and framework will you use?
 (e.g., "Go with Chi router", "Python with FastAPI", "TypeScript/Next.js")
 ```
-All tooling commands, grep patterns, install commands, and module structure derive from this answer.
+All tooling commands, grep patterns, and module structure derive from this answer (see [Reference §B](#b-language-derivation-tables)).
 
-**Q3 — Harness** (required):
+### Q3 — Harness (required)
+
 ```
 Which AI coding harness do you plan to use?
   1. Claude Code
   2. OpenCode
   3. Codex
 ```
-No "None" option. Without a harness, `/plan`, `/pr`, and `/audit_pr` have no execution surface — the generated `docs/` serves no purpose.
 
-**Proceed gate**: After Q1–Q3, present the plan:
+No "None" option. Without a harness, `/plan`, `/pr`, and `/audit_pr` have no execution surface.
+
+### Derive defaults
+
+From Q2, look up the language in [Reference §B](#b-language-derivation-tables) to derive:
+
+- **Tooling**: `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{install_command}`
+- **Grep patterns**: `{debug_print_pattern}`, `{env_read_pattern}`, `{todo_pattern}`, `{sleep_pattern}`, `{bare_assert_true}`, `{mock_not_called}`, `{test_specific_impl}`, `{env_read_in_test}`, `{source_include}`, `{config_dir}`
+- **Structure**: `{config_file}`, `{package_manager}`, module names
+- **Custom grep**: `{missing_assert_in_test}` — requires structural analysis (code reading), not grep
+
+Unavailable until project exists: `{verify_command}`, `{start_command}`, `{expected_output}`, `{deploy_command}`, `{ENV_VAR_1}`, `{ENV_VAR_2}`, `{database}`, `{additional_tools}`, `{backend_framework}`, `{frontend_framework}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`, `{repo_url}`, `{project_dir}`.
+
+See [Reference §C](#c-empty-repo-defaults) for their default values.
+
+### Approval gate
+
+Present the plan:
+
 ```
 Empty repo detected. Filling from 3 answers:
   Project: {name}
@@ -97,62 +130,285 @@ Derived:
   Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
   Package manager: {pkg}
 
-All env/stack/deploy/module/start/verify/expected_output placeholders → <!-- TODO -->
+Unavailable (stubbed with <!-- TODO -->):
+  {list of unavailable placeholders}
 
 Proceed? (yes/no)
 ```
+
 If user says no or hasn't answered Q1/Q2, stop. Do not generate.
 
-#### Empty repo placeholder defaults
-
-| Placeholder | Empty-repo value |
-|-------------|-----------------|
-| `repo_url` | `<!-- TODO: add after pushing to remote -->` |
-| `install_command` | `<!-- TODO: add after project initialization -->` |
-| `verify_command` | `echo "No code yet — verify after adding source"` |
-| `start_command` | `<!-- TODO -->` |
-| `expected_output` | `<!-- TODO -->` |
-| `ENV_VAR_1`, `ENV_VAR_2` | `<!-- TODO -->` |
-| `module_1`, `module_2` | `<!-- TODO -->` |
-| `database`, `cache`, `storage`, `queue` | `<!-- TODO -->` |
-| `monitoring`, `cicd`, `hosting` | `<!-- TODO -->` |
-| `deploy_command`, `cloud_deploy_command` | `<!-- TODO -->` |
-| `additional_tools` | `<!-- TODO -->` |
-| `e2e_cmd`, `benchmark_cmd` | `(none)` |
-| `{threshold}` | `85` |
-| All grep patterns | Derived from language table (normal) |
-| `{project_rejections}` | `(none)` |
-
-After Q1–Q3 + empty-repo defaults, proceed to Step 2 (Approval gate) — skip Step 0 (already read templates) and Step 1 (empty repos skip Round 1–4 questions).
-
-**Normal repos** (config or source detected): proceed through Steps 0–4 normally. See Step 1 — Ask & derive for Round 1–4 questions.
+If yes → proceed to [§6 — Generate files](#6--generate-files). Skip the Q&A rounds (empty repos have no codebase to confirm against).
 
 ---
 
-1. **Clone source**: `git clone {TEMPLATE_REPO_URL} /tmp/repo_template`
-2. **Inventory**: Read all files in `docs_template/` to understand each template
-3. **Discover**: Ask Round 1–4 questions (including Round 2a harness question), derive all defaults (Steps 0–1)
-4. **Approval gate**: Present the full plan (files to create, placeholders to fill, tooling commands) and **wait for user approval** before writing any files
-5. **Generate**: Create `docs/`, copy templates, substitute every placeholder (Step 3)
-6. **Verify**: Run commands to confirm they work, report results (Step 4)
-7. **Cleanup**: `rm -rf /tmp/repo_template` (Step 5)
+## §4 — Fresh install protocol (normal repos)
 
-### Update/refresh protocol
+Clone source and inventory per [§2](#2--clone-source--inventory) first, then ask these questions. If the project already has code, auto-detect from config files to pre-fill defaults.
 
-1. **Clone source**: same as fresh install
-2. **Inventory**: Read current `docs/` + new `docs_template/` — diff to find what changed
-3. **Auto-detect**: Re-derive all defaults from current repo state (no questions). Also check harness dirs (`.claude/`, `.opencode/`, `.codex/`).
-4. **Approval gate**: Present the diff summary (what changed, what gets regenerated, what's preserved, harness status) and **wait for user approval** before writing any files. Continue only after explicit confirmation.
-   - If no harness dirs exist, the summary must include: `No harness dirs detected. Creating docs/commands/ (canonical only). To add harness support, reply with the harness name (claude/opencode/codex).`
-5. **Generate**: Apply only changed/new templates, preserve all runtime content
-6. **Verify**: Run commands, report results
-7. **Cleanup**: same as fresh install
+### Round 1 — Identity
+
+- **Project name**, **repo URL**, **language/framework**, **package manager**.
+- Derive `{project_dir}` from the last segment of `{repo_url}` (without `.git`).
+
+### Round 2 — Tooling (derive from [Reference §B](#b-language-derivation-tables), confirm)
+
+Present derived values for: `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{install_command}`, `{verify_command}`, `{start_command}`, `{deploy_command}`, `{e2e_cmd}`, `{benchmark_cmd}`.
+
+Note: `{format_cmd}` is derived but not used in any generated template — informational only.
+
+### Round 2a — Harness (REQUIRED — never skip)
+
+Scan for `.claude/`, `.opencode/`, `.codex/` directories. Then:
+
+- **If a harness dir exists**: confirm with the user (e.g., "Detected `.claude/` — use Claude Code?"). Update if they correct you.
+- **If NO harness dir exists**: you MUST ask:
+
+```
+No AI harness directory detected (.claude/, .opencode/, .codex/).
+Which AI coding harness do you plan to use?
+  1. Claude Code — creates .claude/commands/pr.md, .claude/commands/plan.md, .claude/commands/audit_pr.md
+  2. OpenCode   — creates .opencode/commands/pr.md, .opencode/commands/plan.md, .opencode/commands/audit_pr.md
+  3. Codex      — creates .codex/commands/pr.md, .codex/commands/plan.md, .codex/commands/audit_pr.md
+  4. None       — only docs/commands/ (canonical copies)
+```
+
+If user selects 1–3, create the directory during generation ([§6](#6--generate-files)). If 4, skip harness install.
+
+### Round 3 — Structure (derive, confirm)
+
+- `{config_file}`, `{module_1}`/`{module_2}` from language table
+- Tech stack: `{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`
+- Env vars: parse `.env.example` if present for `{ENV_VAR_1}`, `{ENV_VAR_2}`, `{ENV_1}`, `{ENV_2}`
+- `{additional_tools}`
+
+### Round 4 — Quality (derive, confirm)
+
+- Coverage: `{threshold}` (default 85). New code ≥90%, integration ≥80%.
+- Grep patterns from language table (see [Reference §B](#b-language-derivation-tables))
+- `{mock_not_called}`: `verify.*never|\.notCalled|mock.*not.*called` (scope to test files: use `--include` for test patterns)
+- `{missing_assert_in_test}`: requires structural analysis (read test bodies), not grep
+- `{project_rejections}`: any custom rejection triggers
+
+### Approval gate
+
+Present the full plan before writing any files:
+
+```
+Ready to generate:
+  Mode: fresh install
+  All template files from docs_template/ will be generated
+  Placeholders to fill: {N}
+  Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
+  Harness: {claude|opencode|codex|none}
+  Output: docs/ (all), ./CLAUDE.md, ./AGENTS.md, scripts/check.sh, {harness}/commands/
+
+Proceed? (yes/no)
+```
+
+**Do not proceed without explicit user confirmation.** If user says no, ask what to change and re-present.
+
+If yes → proceed to [§6 — Generate files](#6--generate-files).
 
 ---
 
-## Placeholder catalog
+## §5 — Update/refresh protocol
 
-### Setup-time (these must be filled during initial instantiation)
+When `docs/` already exists. **Zero questions.** Everything is auto-detected.
+
+### 5a. Clone & scan
+
+1. Clone source per [§2](#2--clone-source--inventory)
+2. Read current `docs/` + new `docs_template/` — diff to find what changed
+3. Read project config files to re-derive all defaults from current state
+4. Read root `CLAUDE.md`, `AGENTS.md` — check if they exist and what tooling is configured
+5. Check for new/modified templates: compare template files in `/tmp/repo_template/docs_template/` against existing generated files in `docs/`
+
+### 5b. What to regenerate
+
+Use content-based comparison (not timestamps). For each file:
+
+| File | Action |
+|------|--------|
+| `index.md`, `quickstart.md`, `contributing.md`, `code-review.md`, `testing.md` | **Re-substitute** all setup-time placeholders from current repo state. Overwrite with fresh copy from template. |
+| `architecture.md` | **Partial re-substitute**: update `{PROJECT_NAME}` + tech stack table. Preserve runtime content (system overview, data flow, module boundaries, design decisions). |
+| `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve scout corrections, task map, always-verify list. |
+| `PR-template.md`, `commands/pr.md`, `commands/plan.md`, `commands/audit_pr.md`, `plans/plan-state-template.md` | **Runtime only**. Copy from template if missing. Setup-time placeholders already removed from these files. |
+| `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{threshold}`. Preserve all runtime sections. |
+| `scripts/check.sh` | **Re-substitute**: regenerate with current tooling/grep values. |
+| `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. Entirely runtime content. |
+| Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate with current `{PROJECT_NAME}`, `{threshold}`. Warn if custom task routing may conflict. |
+| Harness command files (`.claude/commands/`, `.opencode/commands/`, `.codex/commands/`) | **Overwrite unconditionally** from template if harness dir exists. Template is always authoritative for commands. |
+| `docs/commands/` (canonical copies) | **Create if missing**, regenerate if outdated. Not just fresh-install — update mode backfills these too. |
+
+### 5c. Approval gate (with explicit harness prompt)
+
+Present the diff summary before making changes:
+
+```
+Update summary:
+  Templates with changes: {list}
+  Runtime content preserved: {N} ADRs, {N} specs, {N} learnings, {N} phase plans
+  Files being regenerated: {N}
+  Files untouched: {N}
+
+Harness: {.claude/ detected → command files will be overwritten | none detected}
+
+Proceed? (yes/no)
+```
+
+**If no harness dirs exist**, add this explicit line at the end of the summary:
+
+```
+**No harness dirs detected.** Reply "claude", "opencode", or "codex" to add harness command files (pr.md, plan.md, audit_pr.md).
+```
+
+**Do not proceed without explicit user confirmation.** If the user replies with a harness name, create the directory and copy command files, then proceed. If they say no, ask what to change.
+
+### 5d. Apply → Verify → Cleanup
+
+Apply changes per the table above, then verify per [§7](#7--verify), then cleanup per [§8](#8--cleanup).
+
+### Update mode guardrails
+
+- **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions, navigation current-focus/scout corrections/task map).
+- **Never ask standalone questions**. Everything is auto-detected. The harness line in the approval summary is the only prompt.
+- **Never delete user-created files** in `docs/` that don't correspond to a template.
+- **Warn before overwriting** any file the user has modified from its template-original form. Harness command files are excluded — always overwrite from template.
+- **Preserve custom grep patterns** the user may have added to `code-review.md` or `scripts/check.sh`.
+- If detection fails on a required field, leave the placeholder with `<!-- TODO -->` and mention it in the summary.
+
+---
+
+## §6 — Generate files
+
+### 6a. Create directory structure
+
+```bash
+mkdir -p docs/decisions docs/plans docs/specs docs/archive docs/commands
+```
+
+### 6b. Runtime-only files (copy as-is, no substitution)
+
+```
+decisions/YYYY-MM-DD-decision-template.md
+archive/learnings.md
+specs/spec-template.md
+plans/plan-state-template.md
+PR-template.md
+commands/pr.md
+commands/plan.md
+commands/audit_pr.md
+```
+
+### 6c. Partial substitution files
+
+Substitute only the listed placeholders. Leave all other `{...}` tokens as runtime (developers fill them later).
+
+```
+plans/phase-plan-template.md   → {test_cmd}, {lint_cmd}, {e2e_cmd}, {threshold}
+plans/PR-prompt-template.md    → {lint_cmd}, {typecheck_cmd}, {test_cmd}
+plans/progress.md              → {PROJECT_NAME}
+architecture.md                → {PROJECT_NAME}, {module_1}, {module_2},
+                                 {backend_framework}, {frontend_framework}, {database},
+                                 {cache}, {storage}, {queue}, {monitoring}, {cicd}, {hosting}
+navigation.md                  → {what are you working on?} → "docs setup"
+                                 {files most relevant to current task} → "docs/, scripts/, ./"
+                                 NOTE: literal `{PLACEHOLDER}` text in always-verify is a grep target — do NOT substitute
+```
+
+### 6d. Full substitution files
+
+Substitute every setup-time placeholder. Runtime `{description}` and `{default}` tokens are left intact.
+
+```
+index.md           → {PROJECT_NAME}
+quickstart.md      → all 20+ setup-time placeholders
+contributing.md    → all 12+ setup-time placeholders
+code-review.md     → {lint_cmd}, {typecheck_cmd}, {test_cmd}, {threshold}, {project_rejections}
+testing.md         → {PROJECT_NAME} + all grep patterns
+```
+
+### 6e. Special: check.sh
+
+Copy `docs_template/scripts/check.sh` → `scripts/check.sh` (project root). Substitute:
+
+```
+{lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd},
+{debug_print_pattern}, {todo_pattern}, {env_read_pattern},
+{source_include}, {config_dir}
+```
+
+If any command placeholder resolves to `(none)`, substitute with `true` (no-op that always passes). Make executable: `chmod +x scripts/check.sh`.
+
+### 6f. Special: root agent files
+
+- Copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md`. Substitute `{PROJECT_NAME}`, `{threshold}`.
+- Copy `docs_template/AGENTS-template.md` → `./AGENTS.md`. Substitute `{PROJECT_NAME}`, `{threshold}`.
+
+### 6g. Special: harness command files
+
+After generating `docs/commands/pr.md`, `docs/commands/plan.md`, `docs/commands/audit_pr.md` (canonical copies), copy them to the harness's native commands directory:
+
+| Harness | Command dir | Condition |
+|---------|-------------|-----------|
+| Claude Code | `.claude/commands/` | `.claude/` exists or user selected it |
+| OpenCode | `.opencode/commands/` | `.opencode/` exists or user selected it |
+| Codex | `.codex/commands/` | `.codex/` exists or user selected it |
+
+Create the harness directory if needed (`mkdir -p .claude/commands`). If user selected "None" in Round 2a, skip harness install.
+
+### 6h. For placeholders with no available value
+
+Write `(none)` for tooling commands, `<!-- TODO -->` for identity/stack/start/verify/expected_output values.
+
+---
+
+## §7 — Verify
+
+### For repos with code
+
+1. Run `{lint_cmd}` — confirm it runs without crashing
+2. Run `{typecheck_cmd}` — confirm it runs
+3. Run `{test_cmd}` — confirm it runs
+4. If any command fails and no source code exists, flag "no code yet — skip" (non-blocking)
+
+### For empty repos
+
+1. Confirm `scripts/check.sh` is executable
+2. Confirm all files created at expected paths
+3. **Note**: `scripts/check.sh` will fail lint/build/test gates because no code exists — expected and non-blocking
+
+### Both modes — artifact scan (required)
+
+Greps all generated files for leftover setup-time placeholders. **Must find zero hits.**
+
+```bash
+# Generated from Placeholder Catalog (Reference §A). Keep both in sync.
+grep -rn '\{PROJECT_NAME\}\|\{what are you working on?\}\|\{files most relevant to current task\}\|\{language\}\|\{version\}\|\{package_manager\}\|\{repo_url\}\|\{project_dir\}\|\{install_command\}\|\{verify_command\}\|\{start_command\}\|\{expected_output\}\|\{lint_cmd\}\|\{lint_command\}\|\{typecheck_cmd\}\|\{typecheck_command\}\|\{test_cmd\}\|\{test_command\}\|\{test_cmd_single\}\|\{build_cmd\}\|\{build_command\}\|\{e2e_cmd\}\|\{deploy_command\}\|\{config_file\}\|\{module_1\}\|\{module_2\}\|\{ENV_VAR_1\}\|\{ENV_VAR_2\}\|\{ENV_1\}\|\{ENV_2\}\|\{database\}\|\{additional_tools\}\|\{backend_framework\}\|\{frontend_framework\}\|\{cache\}\|\{storage\}\|\{queue\}\|\{monitoring\}\|\{cicd\}\|\{hosting\}\|\{env_read_pattern\}\|\{debug_print_pattern\}\|\{todo_pattern\}\|\{source_include\}\|\{config_dir\}\|\{sleep_pattern\}\|\{mock_not_called\}\|\{bare_assert_true\}\|\{missing_assert_in_test\}\|\{test_specific_impl\}\|\{env_read_in_test\}\|\{threshold\}\|\{project_rejections\}' docs/ ./CLAUDE.md ./AGENTS.md scripts/check.sh 2>/dev/null
+```
+
+Report any hits as errors.
+
+### Both modes — print summary
+
+Files created, placeholders substituted, verification results.
+
+---
+
+## §8 — Cleanup
+
+```bash
+rm -rf /tmp/repo_template
+```
+
+---
+
+# REFERENCE
+
+## A. Placeholder catalog
+
+### Setup-time (must be filled during initial instantiation)
 
 | Placeholder | Appears in | Category |
 |-------------|-----------|----------|
@@ -172,9 +428,7 @@ After Q1–Q3 + empty-repo defaults, proceed to Step 2 (Approval gate) — skip 
 | `{test_cmd_single}` | contributing | Tooling |
 | `{build_cmd}` / `{build_command}` | quickstart, check.sh | Tooling |
 | `{e2e_cmd}` | phase-plan | Tooling |
-| `{benchmark_cmd}` | (none — available for future use) | Tooling |
-| `{format_cmd}` | (not in templates but useful) | Tooling |
-| `{deploy_command}` / `{cloud_deploy_command}` | quickstart | Tooling |
+| `{deploy_command}` | quickstart | Tooling |
 | `{config_file}` | contributing | Structure |
 | `{module_1}` / `{module_2}` | contributing, architecture | Structure |
 | `{ENV_VAR_1}` / `{ENV_VAR_2}` | quickstart | Config |
@@ -190,24 +444,35 @@ After Q1–Q3 + empty-repo defaults, proceed to Step 2 (Approval gate) — skip 
 | `{source_include}` | check.sh | Grep guard |
 | `{config_dir}` | check.sh | Grep guard |
 | `{sleep_pattern}` | testing | Grep guard |
-| `{mock_not_called}` / `{bare_assert_true}` | testing | Grep guard |
-| `{missing_assert_in_test}` / `{test_specific_impl}` | testing | Grep guard |
+| `{mock_not_called}` (scope to test files) | testing | Grep guard |
+| `{bare_assert_true}` | testing | Grep guard |
+| `{missing_assert_in_test}` (requires code reading, not grep) | testing | Grep guard |
+| `{test_specific_impl}` | testing | Grep guard |
 | `{env_read_in_test}` | testing | Grep guard |
 | `{threshold}` (coverage) | code-review, phase-plan, CLAUDE-template, AGENTS-template | Quality |
 | `{project_rejections}` (custom rejection triggers) | code-review | Quality |
 
-### Runtime (filled by developers during daily use — NOT by this script)
+### Runtime (filled by developers during daily use — NEVER substituted at setup)
 
-**Note**: `{description}` appears as a runtime-only placeholder in many templates (quickstart walkthrough, contributing module descriptions, architecture tech stack purposes). It is NEVER substituted during setup — developers fill it later.
-
-
-Files that are entirely runtime: `decisions/*.md`, `specs/*.md`, `plans/plan-state-template.md`, `archive/learnings.md`, `commands/pr.md`, `commands/plan.md`, `commands/audit_pr.md`. These are copied as-is. The PR-template's implementation sections, architecture's design-decision tables, navigation's task map, always-verify list, scout corrections, and commands' workflow instructions are also runtime — left with placeholder hints intact. NOTE: `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, and `plans/progress.md` contain setup-time placeholders and are handled in partial substitution below.
+| Placeholder(s) | Where | Note |
+|---------------|-------|------|
+| `{description}` | quickstart, contributing, architecture | Pervasive — never substitute |
+| `{default}` | contributing (env var table) | Never substitute |
+| `{Step 1/2/3}`, `{description and command}` | quickstart walkthrough | Never substitute |
+| `{system_overview}`, `{data_flow_diagram}`, `{scaling_description}` | architecture | Never substitute |
+| `{inputs}`, `{outputs}`, `{deps}`, `{purpose}`, `{decision_*}`, `{why}`, `{alternatives}` | architecture | Never substitute |
+| `{phase_goal}`, `{N}`, `{validation_item_*}`, `{criterion_*}` | phase-plan-template | Never substitute |
+| `{summary}`, `{component name}`, `{file_path}`, `{code_block}`, `{constraint_*}`, `{error_case}`, `{test_name_*}` | PR-prompt-template | Never substitute |
+| `{phase_diagram}` | progress.md | Never substitute |
+| `{slug}`, `{date}`, `{status}`, `{context}`, `{decision}`, `{pros}`, `{cons}`, `{consequence}`, `{trade-off}`, `{mitigation}` | decisions template, specs template, plan-state-template | Never substitute |
+| `{phase_plan_link}`, `{adr_links}`, `{Component A/B}` | PR-template | Never substitute |
+| `{symptom-you-hit}`, `{grep-command-that-would-have-solved-it}`, `{est%}` | navigation | Never substitute |
+| `{PLACEHOLDER}` (literal text) | navigation (always-verify section) | Grep target — never substitute |
+| `{format_cmd}` | (none) | Derived from language table but not used in any template |
 
 ---
 
-## Default derivation rules
-
-The AI must derive defaults from the Round 1 answers using these lookup tables. If the project already has a codebase, inspect existing config files (`package.json`, `pyproject.toml`, `Cargo.toml`, `Makefile`, etc.) to refine defaults.
+## B. Language derivation tables
 
 ### Language → tooling commands
 
@@ -227,10 +492,12 @@ The AI must derive defaults from the Round 1 answers using these lookup tables. 
 | Elixir | `mix credo` | `mix dialyzer` | `mix test --cover` | `mix test` | `mix compile` | `mix format` |
 | Zig | (none) | `zig build` | `zig build test` | `zig build test` | `zig build` | `zig fmt .` |
 
+`{format_cmd}` is informational only — not substituted into any template or script currently.
+
 ### Language → grep patterns
 
 | Language | debug_print_pattern | env_read_pattern | todo_pattern | sleep_pattern | bare_assert_true | source_include | config_dir |
-|----------|---------------------|------------------|--------------|---------------|------------------|
+|----------|---------------------|------------------|--------------|---------------|------------------|----------------|
 | Python | `print(` | `os\.environ\[` | `TODO\|FIXME\|HACK` | `sleep\(` | `assert True` | `--include="*.py"` | `config` |
 | TypeScript/JS | `console\.log` | `process\.env\.` | `TODO\|FIXME\|HACK` | `setTimeout` in test | `expect\(true\)` | `--include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx"` | `config` |
 | Go | `fmt\.Println` | `os\.Getenv` | `TODO\|FIXME\|HACK` | `time\.Sleep` in test | — | `--include="*.go"` | `config` |
@@ -238,12 +505,12 @@ The AI must derive defaults from the Round 1 answers using these lookup tables. 
 | Kotlin/Java | `println\|System\.out` | `System\.getenv` | `TODO\|FIXME\|HACK` | `Thread\.sleep` in test | `assertTrue\(true\)` | `--include="*.kt" --include="*.java"` | `config` |
 
 Additional grep patterns per language:
-- `{mock_not_called}`: `verify.*never\|\.notCalled\|mock.*not.*called`
-- `{missing_assert_in_test}`: language-specific (e.g. for pytest: function with `def test_` containing no `assert`). **Note**: this requires structural analysis (not grep alone). The AI should inspect test bodies for missing assertions.
+- `{mock_not_called}`: `verify.*never|\.notCalled|mock.*not.*called` — scope to test files only
+- `{missing_assert_in_test}`: requires structural analysis (read test function bodies for missing assertions), not grep alone
 - `{test_specific_impl}`: `\._\w+\(` (private method call in test)
 - `{env_read_in_test}`: same as `env_read_pattern` but scoped to test files
 
-### Language → install/verify/start commands
+### Language → install/verify/start
 
 | Language | install_command | verify_command | start_command |
 |----------|----------------|----------------|---------------|
@@ -280,337 +547,186 @@ Default: `{e2e_cmd}` = (none), `{benchmark_cmd}` = (none) unless the project alr
 
 | Placeholder | Default |
 |-------------|---------|
-| `{project_dir}` | Last segment of `{repo_url}` without `.git` suffix (e.g., `my-project` from `github.com/user/my-project.git`) |
+| `{project_dir}` | Last segment of `{repo_url}` without `.git` suffix |
 | `{expected_output}` | If no code exists: `<!-- TODO: describe expected first-run output -->` |
 
 ---
 
-## Setup protocol (fresh install)
+## C. Empty-repo defaults
 
-### Step 0 — Read templates
+Placeholders unavailable during empty-repo setup and their default values:
 
-Read every file in `docs_template/`. Build a map: file → each `{PLACEHOLDER}` found. Cross-reference against the Placeholder Catalog table above to identify which are setup-time vs runtime.
+| Placeholder | Empty-repo value |
+|-------------|-----------------|
+| `{repo_url}` | `<!-- TODO: add after pushing to remote -->` |
+| `{project_dir}` | `<!-- TODO: add after pushing to remote -->` |
+| `{verify_command}` | `echo "No code yet — verify after adding source"` |
+| `{start_command}` | `<!-- TODO -->` |
+| `{expected_output}` | `<!-- TODO -->` |
+| `{deploy_command}` | (none) |
+| `{ENV_VAR_1}`, `{ENV_VAR_2}` | `<!-- TODO -->` |
+| `{ENV_1}`, `{ENV_2}` | `<!-- TODO -->` |
+| `{module_1}`, `{module_2}` | Derived from language table |
+| `{database}`, `{cache}`, `{storage}`, `{queue}` | `<!-- TODO -->` |
+| `{monitoring}`, `{cicd}`, `{hosting}` | `<!-- TODO -->` |
+| `{additional_tools}` | `<!-- TODO -->` |
+| `{e2e_cmd}`, `{benchmark_cmd}` | (none) |
+| `{threshold}` | `85` |
 
-### Step 1 — Ask & derive (Question rounds 1–4)
+`{install_command}` uses the language-derived value (e.g., `go mod download`) — these work without existing code. All other tooling/grep patterns are also language-derived per the tables above.
 
-**If repo is empty** (no configs, no source, per detection above): skip this step. The empty repo protocol (3 questions) already ran. All tooling/grep derived from language table; all stack/env/module/verify/start → `<!-- TODO -->`. Proceed to Step 2.
+---
 
-**Normal repos**: Ask these questions in order, then derive all other defaults from the lookup tables above. If the project already has code, auto-detect from config files first (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.).
+## D. Examples
 
-**IMPORTANT**: Round 2a (harness) is NOT optional. You must ask it even if no harness directory is detected. Do not silently skip it.
+### Empty repo (3 questions)
 
-**Round 1 — Identity**: project name, repo URL, language/framework, package manager.
+**User says**: "Set up docs for a new Go project"
 
-**Round 2 — Tooling** (derived, confirm): `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{test_cmd_single}`, `{build_cmd}`, `{format_cmd}`, `{e2e_cmd}`, `{benchmark_cmd}`, `{install_command}`, `{verify_command}`, `{start_command}`, `{deploy_command}`.
+**AI scans**: No `go.mod`, no `src/`, no config files → empty repo.
 
-**Round 2a — Harness** (REQUIRED question — never skip): Before continuing, scan for `.claude/`, `.opencode/`, `.codex/` directories. Then:
-
-- **If a harness directory exists**: confirm with the user (e.g. "Detected .claude/ — use Claude Code?"). Update if they correct you.
-- **If NO harness directory exists**: you MUST ask this question. Do not silently proceed.
-
+**AI asks** (3 questions):
 ```
-No AI harness directory detected (.claude/, .opencode/, .codex/).
-Which AI coding harness do you plan to use?
-  1. Claude Code — I'll create .claude/commands/pr.md, .claude/commands/plan.md, and .claude/commands/audit_pr.md
-  2. OpenCode   — I'll create .opencode/commands/pr.md, .opencode/commands/plan.md, and .opencode/commands/audit_pr.md
-  3. Codex      — I'll create .codex/commands/pr.md, .codex/commands/plan.md, and .codex/commands/audit_pr.md
-  4. None       — only docs/commands/pr.md, docs/commands/plan.md, and docs/commands/audit_pr.md (canonical copies)
+Empty repo detected.
+Q1 — Project name? my-go-service
+Q2 — Language/framework? [Go with Chi]
+Q3 — Harness? [1 — Claude Code]
+
+Empty repo — filling from 3 answers:
+  Project: my-go-service
+  Language: Go
+  Harness: claude
+
+Derived:
+  Tooling: golangci-lint run, go vet ./..., go test -cover ./...
+  Package manager: go modules
+  install_command: go mod download
+
+Unavailable (stubbed with <!-- TODO -->):
+  verify_command, start_command, expected_output, database, cache, etc.
+
+Proceed? [yes]
 ```
 
-If the user selects 1–3, create the directory (e.g. `mkdir -p .claude/commands`) and copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` there during Step 3. `docs/commands/pr.md`, `docs/commands/plan.md`, and `docs/commands/audit_pr.md` are always created as the canonical copies. If the user selects 4 (None), skip harness-specific install.
+**AI generates**: docs/, .claude/commands/, ./CLAUDE.md, ./AGENTS.md, scripts/check.sh. All setup-time placeholders substituted per empty-repo defaults. `go mod download` used as install_command.
 
-**Round 3 — Structure** (derived, confirm): `{config_file}`, `{module_1}`/`{module_2}`, tech stack (`{backend_framework}`, `{frontend_framework}`, `{database}`, `{cache}`, `{storage}`, `{queue}`, `{monitoring}`, `{cicd}`, `{hosting}`), env vars (parse `.env.example` if present), `{additional_tools}`.
+**AI verifies**: Artifact scan shows zero leftover setup-time placeholders. `scripts/check.sh` is executable. (Expected: check.sh will fail lint/build/test since no code exists — noted as non-blocking.)
 
-**Round 4 — Quality** (derived, confirm): coverage thresholds (85/90/80), grep patterns (`{env_read_pattern}`, `{debug_print_pattern}`, `{todo_pattern}`, `{sleep_pattern}`, `{mock_not_called}`, `{bare_assert_true}`, `{missing_assert_in_test}`, `{test_specific_impl}`, `{env_read_in_test}`), custom `{project_rejections}`.
+**Cleanup**: removed /tmp/repo_template.
 
-### Step 2 — Approval gate
+---
 
-Present the full plan before writing any files. Summarize:
+### Fresh install (minimal interaction)
 
+**User says**: "Set up docs for my Python FastAPI project"
+
+**AI clones source**: `git clone https://github.com/ethanhanguyen/repo_template /tmp/repo_template`
+
+**AI detects** (from `pyproject.toml`, `.env.example`, existing `src/`):
+- Language: Python, Framework: FastAPI
+- lint: `ruff check .`, test: `pytest --cov`, typecheck: `mypy src/`
+- DB: PostgreSQL, Cache: Redis
+- 3 env vars from `.env.example`
+- No existing `docs/` → fresh install mode
+
+**AI asks** (1 question block):
 ```
-Ready to generate:
-  Mode: fresh install
-  Files to create: 14
-  Placeholders to fill: {N}
-  Tooling: {lint_cmd}, {typecheck_cmd}, {test_cmd}, {build_cmd}
-  Harness: {claude|opencode|codex|none}
-  Files will be created in: docs/ (all), ./CLAUDE.md, ./AGENTS.md, {harness}/commands/pr.md, {harness}/commands/plan.md, {harness}/commands/audit_pr.md
+Round 1 — Project name? [my-fastapi-app] 
+Repo URL? [github.com/user/my-fastapi-app]
+Confirm Python/FastAPI? [Y]
+Database: PostgreSQL? [Y]
+
+No harness dir detected — which harness? [4 — None]
+  (1. Claude Code  2. OpenCode  3. Codex  4. None)
+
+All defaults accepted. Generating docs/ ...
+```
+
+### Update mode (zero questions)
+
+**User says**: "Update my docs"
+
+**AI clones source**: `git clone https://github.com/ethanhanguyen/repo_template /tmp/repo_template`
+
+**AI detects** (from existing `docs/` + project config files):
+```
+docs/ found → update mode. Scanning...
+  Current setup: Python, FastAPI, ruff, pytest, PostgreSQL
+  Runtime content: 3 ADRs, 1 spec, 8 learnings, 2 phase plans
+  Templates changed: quickstart.md (new deploy_command placeholder)
+  Root files: CLAUDE.md — tooling commands unchanged, AGENTS.md — unchanged
+
+Update summary:
+  Regenerating: 1 file (quickstart.md)
+  Preserving: 13 files (all runtime content + unchanged templates)
+  Harness: .claude/ → pr.md and plan.md will be overwritten from template
+
+Proceed? [yes]
+
+Applying changes...
+  1 file updated. Verified: ruff clean, mypy clean, pytest 42 passed.
+Cleanup: removed /tmp/repo_template.
+```
+
+When no harness dirs exist:
+```
+  Harness: none detected.
+
+**No harness dirs detected.** Reply "claude", "opencode", or "codex" to add harness command files (pr.md, plan.md, audit_pr.md).
 
 Proceed? (yes/no)
 ```
 
-**Do not proceed without explicit user confirmation.** If the user says no, ask what to change and re-present.
+---
 
-### Step 3 — Generate
+## E. Guardrails
 
-Create `docs/` and populate it:
+### All modes
 
-```
-mkdir -p docs/decisions docs/plans docs/specs docs/archive docs/commands
-```
+- **Clone source first**: before generating anything, `git clone {TEMPLATE_REPO_URL} /tmp/repo_template` to get the latest `docs_template/`.
+- **Never invent project details**: if detection fails, ask — don't guess (fresh mode) or leave `<!-- TODO -->` (update mode).
+- **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md`.
+- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user (Round 2a). Always create `docs/commands/` as the canonical copy.
+- **Verify after generation**: if a command fails, flag it but don't block — the project may not have code yet. On empty repos, check.sh failures are expected.
+- **Leave runtime placeholders intact**: only substitute the setup-time catalog listed in [Reference §A](#a-placeholder-catalog). Never touch ADR fields, spec fields, PR implementation sections, navigation current-focus/scout corrections/task map, architecture design decisions, or phase plan goals.
+- **Preserve exact formatting**: only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.
+- **Clean up**: after generation and verification, `rm -rf /tmp/repo_template`.
 
-For **setup-time templates** (those containing setup-time placeholders), copy the file and replace every placeholder with the collected values. Use exact string substitution.
+### Fresh install mode
 
-For **runtime-only templates**, copy them as-is (their placeholders are filled by developers during daily use).
+- **Never skip questions**: even if defaults seem obvious, present them for confirmation.
+- **Ask about harness (Round 2a)**: if no `.claude/`, `.opencode/`, or `.codex/` directories are detected, ask the user. Do not assume "None" silently.
+- **Never overwrite `docs/` if it already exists**: warn and suggest switching to update mode.
+- **Wait for approval**: after deriving all defaults, present the full plan and wait for explicit user confirmation before generating files.
 
-**Files copied as-is** (runtime only — no setup-time placeholders):
-```
-decisions/YYYY-MM-DD-decision-template.md
-archive/learnings.md
-specs/spec-template.md
-plans/plan-state-template.md
-PR-template.md
-commands/pr.md
-commands/plan.md
-commands/audit_pr.md
-```
+### Update/refresh mode
 
-**Files needing partial substitution** (commands/patterns/thresholds substituted; content sections left as runtime placeholders):
-```
-plans/phase-plan-template.md   → substitute {test_cmd}, {lint_cmd}, {e2e_cmd}, {threshold}; leave goal, PRs, validation items as runtime
-plans/PR-prompt-template.md    → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}; leave summary, implementation, test names as runtime
-plans/progress.md              → substitute {PROJECT_NAME}; leave PR status, sessions, notes as runtime
-architecture.md                → substitute {PROJECT_NAME}, {module_1}, {module_2}, and tech stack ({backend_framework}, {frontend_framework}, {database}, {cache}, {storage}, {queue}, {monitoring}, {cicd}, {hosting}); leave system_overview, data_flow_diagram, module boundary details ({description}, {inputs}, {outputs}, {deps}), design decisions, scaling_description as runtime
-navigation.md                  → substitute {what are you working on?} to "docs setup" and {files most relevant to current task} to "docs/, scripts/, ./"; always-verify, scout corrections, task map left as hints
-                                (NOTE: the literal text `{PLACEHOLDER}` on navigation.md is a developer grep target — do NOT substitute it)
-```
-
-**Files needing full substitution** (primarily setup-time; see Runtime section above for `{description}` tokens that are NOT substituted):
-```
-index.md           → substitute {PROJECT_NAME}
-quickstart.md      → substitute all 20+ setup-time placeholders; leave walkthrough {Step 1/2/3} and {description and command} as runtime
-contributing.md    → substitute all 12+ setup-time placeholders; leave module {description}, {default}, and env {description} runtime
-code-review.md     → substitute {lint_cmd}, {typecheck_cmd}, {test_cmd}, {threshold}, {project_rejections}
-testing.md         → substitute {PROJECT_NAME} + all grep patterns
-```
-
-**Special: check.sh** — copy `docs_template/scripts/check.sh` → `scripts/check.sh` (project root, not docs/). Substitute `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`. If any command placeholder resolves to `(none)`, substitute it with `true` (no-op that always passes — e.g. the build gate for languages without a build step). Make executable with `chmod +x scripts/check.sh`. This is the single automated gate command.
-
-**Special: Harness command installation** — After generating `docs/commands/pr.md`, `docs/commands/plan.md`, and `docs/commands/audit_pr.md`, copy the command files to the harness's native commands directory. This makes `/pr`, `/plan`, and `/audit_pr` work as native slash commands:
-
-| Harness | Command directory | Condition |
-|---------|-------------------|-----------|
-| Claude Code | `.claude/commands/pr.md`, `.claude/commands/plan.md`, `.claude/commands/audit_pr.md` | `.claude/` exists or user selected it |
-| OpenCode | `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.opencode/commands/audit_pr.md` | `.opencode/` exists or user selected it |
-| Codex | `.codex/commands/pr.md`, `.codex/commands/plan.md`, `.codex/commands/audit_pr.md` | `.codex/` exists or user selected it |
-| Generic | `docs/commands/pr.md`, `docs/commands/plan.md`, `docs/commands/audit_pr.md` | Always created (canonical copies) |
-
-The harness was determined in Round 2a above. Create the harness directory (e.g. `mkdir -p .claude/commands`) and copy the three command files from `docs_template/commands/` into it. If the user selected "None", skip harness-specific install — only `docs/commands/` is created.
-
-**Special: CLAUDE-template.md** — copy `docs_template/CLAUDE-template.md` → `./CLAUDE.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{threshold}`. This file enforces the **plan-first rule**: before any code change, create a PR plan doc and update progress/architecture/README first.
-
-**Special: AGENTS-template.md** — copy `docs_template/AGENTS-template.md` → `./AGENTS.md` (project root, not docs/). Substitute `{PROJECT_NAME}`, `{threshold}`. This file is the **harness-agnostic agent rules** for OpenCode, Cursor, Aider, Codex, and any AI coding agent that reads `AGENTS.md`. Same enforcement logic as `CLAUDE.md` but zero harness-specific assumptions.
-
-For placeholders that the user didn't provide (e.g., deploy_command when no deploy exists), write `(none)` or `<!-- TODO -->`.
-
-### Step 4 — Verify
-
-After generation, run these checks and report results.
-
-**Normal repos** (code exists):
-1. Run `{lint_cmd}` (if it exists) — confirm it runs without crashing
-2. Run `{typecheck_cmd}` (if it exists) — confirm it runs
-3. Run `{test_cmd}` (if it exists) — confirm it runs
-4. If any command fails and no source code exists, flag it as "no code yet — skip" (non-blocking).
-5. Run the artifact scan (see below)
-
-**Empty repos** (no code):
-1. Confirm `scripts/check.sh` is executable (`chmod +x scripts/check.sh`)
-2. Confirm all files created at expected paths
-3. Run the artifact scan (see below)
-
-**Both modes — final artifact scan** (run last, always):
-
-Verify every placeholder from the Setup-time catalog table above has been substituted in all generated files. Run:
-
-```bash
-# Derived from the Setup-time placeholder catalog — update if catalog changes
-grep -rn '\{PROJECT_NAME\}\|\{what are you working on?\}\|\{files most relevant to current task\}\|\{language\}\|\{version\}\|\{package_manager\}\|\{repo_url\}\|\{project_dir\}\|\{install_command\}\|\{verify_command\}\|\{start_command\}\|\{expected_output\}\|\{lint_cmd\}\|\{lint_command\}\|\{typecheck_cmd\}\|\{typecheck_command\}\|\{test_cmd\}\|\{test_command\}\|\{test_cmd_single\}\|\{build_cmd\}\|\{build_command\}\|\{e2e_cmd\}\|\{deploy_command\}\|\{cloud_deploy_command\}\|\{config_file\}\|\{module_1\}\|\{module_2\}\|\{ENV_VAR_1\}\|\{ENV_VAR_2\}\|\{ENV_1\}\|\{ENV_2\}\|\{database\}\|\{additional_tools\}\|\{backend_framework\}\|\{frontend_framework\}\|\{cache\}\|\{storage\}\|\{queue\}\|\{monitoring\}\|\{cicd\}\|\{hosting\}\|\{env_read_pattern\}\|\{debug_print_pattern\}\|\{todo_pattern\}\|\{source_include\}\|\{config_dir\}\|\{sleep_pattern\}\|\{mock_not_called\}\|\{bare_assert_true\}\|\{missing_assert_in_test\}\|\{test_specific_impl\}\|\{env_read_in_test\}\|\{threshold\}\|\{project_rejections\}' docs/ ./CLAUDE.md ./AGENTS.md scripts/check.sh 2>/dev/null
-```
-This must find **zero** setup-time placeholders. Report any hits as errors.
-
-**Both modes — print summary**: files created, placeholders substituted, verification results.
-
-### Step 5 — Cleanup
-
-After generation and verification, remove the temp clone:
-
-```bash
-rm -rf /tmp/repo_template
-```
+- **Never ask questions**: everything is auto-detected from existing repo state. The harness note in the approval summary is the only prompt.
+- **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions, navigation current-focus, scout corrections, task map, always-verify list).
+- **Never delete user-created files** in `docs/` that don't correspond to a template.
+- **Warn before overwriting** any file the user has modified from its template-original form.
+- **Print a diff summary** before making changes so the user can review.
+- **Preserve custom values**: grep patterns, coverage thresholds, project rejections the user already configured.
 
 ---
 
-## Update/refresh mode
+## F. Uninstall
 
-When `docs/` already exists (e.g. the project was set up with an older version of the templates), the AI runs a **zero-questions auto-detect** protocol. No Rounds 1–4 questions are asked.
-
-### Detection (Step 0.5)
-
-Before cloning the source, scan the existing `docs/` to understand the current state:
-
-1. **Read existing docs**: which templates are already generated, which placeholders are filled
-2. **Read project config files**: `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, `.env.example` — re-derive all defaults from current state
-3. **Read existing root files**: `CLAUDE.md`, `AGENTS.md` — check if they exist and what tooling is configured
-4. **Check for new/modified templates**: compare the template files in the clone (`/tmp/repo_template/docs_template/`) against the existing generated files in `docs/`
-
-### What to regenerate
-
-Only regenerate files that differ from the template source. Use a content-based comparison (not timestamp). For each file in `docs/`:
-
-| File | Action |
-|------|--------|
-| `index.md`, `quickstart.md`, `contributing.md`, `code-review.md`, `testing.md` | **Re-substitute**: re-derive all setup-time placeholders from current repo state. Apply to a fresh copy from the template. Overwrite the generated file. |
-| `architecture.md` | **Partial re-substitute**: update `{PROJECT_NAME}` + tech stack table. Preserve `{system_overview}`, `{data_flow_diagram}`, module boundaries, and design decisions — these are runtime content filled by developers. |
-| `navigation.md` | **Update Current focus only**: set to "docs update — re-scanning". Preserve all scout corrections, task map, and always-verify list. |
-| `PR-template.md`, `commands/pr.md`, `commands/plan.md`, `commands/audit_pr.md`, `plans/plan-state-template.md` | **Runtime only** (copied as-is from template if missing). These files no longer contain setup-time placeholders. |
-| `plans/phase-plan-template.md`, `plans/PR-prompt-template.md`, `plans/progress.md` | **Re-substitute tooling placeholders only**: update `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{threshold}` from current detection. Preserve all runtime sections (PR descriptions, plan goals, progress entries). |
-| `scripts/check.sh` | **Re-substitute**: regenerate from `docs_template/scripts/check.sh` with current tooling values (`{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}`, `{build_cmd}`, `{debug_print_pattern}`, `{todo_pattern}`, `{env_read_pattern}`, `{source_include}`, `{config_dir}`). |
-| `decisions/*.md`, `specs/*.md`, `archive/learnings.md` | **Never touch**. These are entirely runtime content. |
-| Root `CLAUDE.md`, `AGENTS.md` | **Re-substitute**: regenerate from `CLAUDE-template.md` / `AGENTS-template.md` with current tooling values. Preserve any custom task routing the user may have added — warn if template changed and list conflicts. |
-| Harness command files (`.claude/commands/pr.md`, `.claude/commands/plan.md`, `.claude/commands/audit_pr.md`, `.opencode/commands/pr.md`, `.opencode/commands/plan.md`, `.opencode/commands/audit_pr.md`, `.codex/commands/pr.md`, `.codex/commands/plan.md`, `.codex/commands/audit_pr.md`) | **Copy/override unconditionally if harness dir exists**. Template source is always authoritative for commands — no diff needed. Overwrite existing harness copies directly from `/tmp/repo_template/docs_template/commands/pr.md`, `plan.md`, and `audit_pr.md`. **If no harness dir exists**: no action (skip; canonical copies in `docs/commands/` are not created in update mode — they are fresh-install only). Include a harness note in the approval summary so the user can request a specific harness if desired. |
-
-### Update protocol steps
-
-1. **Clone source**: `git clone {TEMPLATE_REPO_URL} /tmp/repo_template`
-2. **Detect**: scan existing `docs/` + project config files. Auto-derive all placeholders.
-3. **Diff**: compare each template file against its generated counterpart to find what changed.
-4. **Report & wait for approval**: print a summary before making changes:
-   ```
-   Update summary:
-     Templates with changes: quickstart.md (new placeholder added), code-review.md (threshold changed)
-     Runtime content preserved: 3 ADRs, 2 specs, 14 learnings, 2 phase plans
-     Files being regenerated: 5
-     Files untouched: 8
-      Harness: none detected. Reply with "claude", "opencode", or "codex" to add harness support.
-    
-    Proceed? (yes/no)
-    ```
-    **Do not proceed without explicit user confirmation.**
- 5. **Apply**: regenerate only changed files per the table above.
- 6. **Verify**: run `{lint_cmd}`, `{typecheck_cmd}`, `{test_cmd}` (if they exist). Confirm no leftover `{PLACEHOLDER}` tokens.
- 7. **Cleanup**: `rm -rf /tmp/repo_template`
- 
- ### Update mode guardrails
- 
- - **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions).
- - **Never ask standalone questions**. Everything is auto-detected. If detection fails on a required field, leave the placeholder with `<!-- TODO -->` and mention it in the summary.
- - **Harness exception**: harness preference cannot be auto-detected. Always include a harness line in the approval summary: if dirs exist, confirm harness; note that command files (`pr.md`, `plan.md`) will be overwritten from template. If no harness dirs exist, note that the user can reply with a harness name to add support. This is a summary note, not a separate question — the user sees it during the approval gate and can act on it.
- - **Never delete user-created files** in `docs/` that don't correspond to a template.
- - **Warn before overwriting** any file the user has modified from its template-original form (if the diff is non-trivial). Harness command files (`.claude/commands/pr.md`, etc.) are excluded — always overwrite from template.
- - **Preserve custom grep patterns** the user may have added to `code-review.md` or `scripts/check.sh`.
- 
- ---
-
- ## Example: empty repo (3 questions)
-
- **User says**: "Set up docs for a new Go project"
-
- **AI scans**: No `go.mod`, no `src/`, no config files → empty repo.
-
- **AI asks** (3 questions):
- ```
- Empty repo detected.
- Q1 — Project name? my-go-service
- Q2 — Language/framework? [Go with Chi]
- Q3 — Harness? [1 — Claude Code]
-
- Empty repo — filling from 3 answers:
-   Project: my-go-service
-   Language: Go
-   Harness: claude
-
- Derived:
-   Tooling: golangci-lint run, go vet ./..., go test -cover ./...
-   Package manager: go modules
-
- All stack/env/module/deploy/verify/start/expected_output → <!-- TODO -->
-
- Proceed? [yes]
- ```
-
- **AI generates**: docs/, .claude/commands/, ./CLAUDE.md, ./AGENTS.md, scripts/check.sh. 14 files. All setup-time placeholders substituted. Stack/env/verify/start stubbed with `<!-- TODO -->`.
-
- **AI verifies**: Artifact scan shows zero leftover setup-time placeholders. `scripts/check.sh` is executable.
-
- **Cleanup**: removed /tmp/repo_template.
-
- ---
-
- ## Example: minimal interaction
- 
- **User says**: "Set up docs for my Python FastAPI project"
- 
- **AI clones source**: `git clone https://github.com/ethanhanguyen/repo_template /tmp/repo_template`
- 
- **AI detects** (from `pyproject.toml`, `.env.example`, existing `src/`):
- - Language: Python, Framework: FastAPI
- - lint: `ruff check .`, test: `pytest --cov`, typecheck: `mypy src/`
- - DB: PostgreSQL, Cache: Redis
- - 3 env vars from `.env.example`
- - No existing `docs/` → fresh install mode
- 
- **AI asks** (1 question block):
- ```
- Round 1 — Project name? [my-fastapi-app] 
- Repo URL? [github.com/user/my-fastapi-app]
- Confirm Python/FastAPI? [Y]
- Database: PostgreSQL? [Y]
- 
- No harness dir detected — which harness? [4 — None]
-   (1. Claude Code  2. OpenCode  3. Codex  4. None)
- 
- All defaults accepted. Generating docs/ ...
- ...
- ```
- 
- ### Example: update mode (zero questions)
- 
- **User says**: "Update my docs"
- 
- **AI clones source**: `git clone https://github.com/ethanhanguyen/repo_template /tmp/repo_template`
- 
- **AI detects** (from existing `docs/` + project config files):
- ```
- docs/ found → update mode. Scanning...
-   Current setup: Python, FastAPI, ruff, pytest, PostgreSQL
-   Runtime content: 3 ADRs, 1 spec, 8 learnings, 2 phase plans
-   Templates changed: quickstart.md (new deploy_command placeholder)
-   Root files: CLAUDE.md — tooling commands unchanged, AGENTS.md — unchanged
- 
- Update summary:
-   Regenerating: 1 file (quickstart.md)
-   Preserving: 13 files (all runtime content + unchanged templates)
-     Harness: .claude/ → pr.md and plan.md will be overwritten from template
- 
- Applying changes...
-   1 file updated. Verified: ruff clean, mypy clean, pytest 42 passed.
- Cleanup: removed /tmp/repo_template.
- ```
- 
- When no harness dirs exist, the summary includes:
- ```
-    Harness: none detected. Reply with "claude", "opencode", or "codex" to add harness support.
- ```
-
----
-
-## Uninstall
-
-To remove the generated workflow files while preserving runtime content:
+To remove generated workflow files while preserving runtime content:
 
 ```bash
 # Remove generated root files
 rm -f CLAUDE.md AGENTS.md scripts/check.sh
 
 # Remove template files from docs/ (preserves decisions/, specs/, archive/, plans/)
-# Note: docs/commands/ are canonical copies — they can be regenerated from a fresh install
 rm -f docs/index.md docs/quickstart.md docs/contributing.md \
       docs/code-review.md docs/testing.md docs/architecture.md \
       docs/navigation.md docs/PR-template.md docs/commands/pr.md docs/commands/plan.md docs/commands/audit_pr.md
 
 # Remove harness command files (if any)
-rm -f .claude/commands/pr.md .claude/commands/plan.md .claude/commands/audit_pr.md .opencode/commands/pr.md .opencode/commands/plan.md .opencode/commands/audit_pr.md .codex/commands/pr.md .codex/commands/plan.md .codex/commands/audit_pr.md
+rm -f .claude/commands/pr.md .claude/commands/plan.md .claude/commands/audit_pr.md \
+      .opencode/commands/pr.md .opencode/commands/plan.md .opencode/commands/audit_pr.md \
+      .codex/commands/pr.md .codex/commands/plan.md .codex/commands/audit_pr.md
 
 # Clean up empty directories
 rmdir docs/commands 2>/dev/null
@@ -620,35 +736,3 @@ rmdir docs/ 2>/dev/null
 **Preserved**: `docs/decisions/`, `docs/specs/`, `docs/archive/`, `docs/plans/` — all runtime content.
 
 **Removed**: root agent files (`CLAUDE.md`, `AGENTS.md`), `scripts/check.sh`, generated template files, harness command files.
-
----
-
-
-## Guardrails for the AI
-
-### Both modes
-
-- **Clone source first**. Before generating anything, `git clone {TEMPLATE_REPO_URL} /tmp/repo_template` to get the latest `docs_template/`.
-- **Never invent project details**. If detection fails, ask — don't guess (fresh mode) or leave `<!-- TODO -->` (update mode).
-- **Generate root `CLAUDE.md`** from `CLAUDE-template.md` and root `AGENTS.md` from `AGENTS-template.md` — these are the agent instruction files that enforce the plan-first rule.
-- **Install harness commands**: if a harness dir exists, confirm it. If none exists, ask the user which harness they plan to use (Round 2a). Copy `commands/pr.md`, `commands/plan.md`, and `commands/audit_pr.md` to the matching directory. Always create `docs/commands/` as the canonical copy.
-- **Verify after generation**. If a command fails, flag it but don't block — the project may not have code yet.
-- **Leave runtime placeholders intact**. Only substitute the setup-time catalog listed above. Don't touch ADR fields, spec fields, PR implementation sections, navigation current-focus/scout corrections/task map, architecture design decisions, or phase plan goals.
-- **Preserve exact formatting**. Only change placeholder tokens. Don't re-wrap paragraphs, don't adjust markdown syntax, don't "improve" the templates.
-- **Clean up**: after generation and verification, `rm -rf /tmp/repo_template`.
-
-### Fresh install mode
-
-- **Never skip questions**. Even if defaults seem obvious, present them for confirmation.
-- **Ask about harness**: if no `.claude/`, `.opencode/`, or `.codex/` directories are detected, ask the user which harness they plan to use. Do not assume "None" silently.
-- **Never overwrite `docs/` if it already exists**. Warn and suggest switching to update mode.
-- **Wait for approval**. After deriving all defaults, present the full plan and wait for explicit user confirmation before generating files.
-
-### Update/refresh mode
-
-- **Never ask questions**. Everything is auto-detected from existing repo state.
-- **Never overwrite runtime content** (ADRs, specs, learnings, progress entries, architecture design decisions, navigation current-focus, scout corrections, task map, always-verify list).
-- **Never delete user-created files** in `docs/` that don't correspond to a template.
-- **Warn before overwriting** any file the user has modified from its template-original form.
-- **Print a diff summary** before making changes so the user can review.
-- **Preserve custom values**: grep patterns, coverage thresholds, project rejections the user already configured.
