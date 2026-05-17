@@ -109,6 +109,12 @@ Skip if Simple. Read `docs/plans/progress.md` for next PR numbers, `docs/archite
 
 For each PR (or the single PR for Simple): draft verbally using `docs/plans/PR-prompt-template.md`. → mark A4 approved, `current_step: A5` (or `A6` if no ADRs).
 
+**Frontend PRs**: if the PR touches UI code, the PR doc **must** include
+`## Visual design` (format in `docs/plans/PR-prompt-template.md`). Must
+include design rationale — justify each choice from the user's perspective
+(scanning pattern, glanceability, affordance, information hierarchy). No
+hardcoded hex. Rejected without it.
+
 ## Step A5 — Draft ADRs (if applicable)
 
 If architectural decisions needed: draft verbally using `docs/decisions/YYYY-MM-DD-decision-template.md`. → mark A5 approved, `current_step: A6`. If none → skip A5.
