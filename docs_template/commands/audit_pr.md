@@ -66,7 +66,7 @@ Create a todo list:
     - If user asks for merged PRs explicitly (e.g. `/audit_pr 42 merged`) → include merged state filter
 
 6. **Validate results**:
-    - If zero PRs returned from `gh pr list` → fall back to `docs/plans/progress.md` (or `docs_template/plans/progress.md`). Scan the PR Status table for rows with status `✅ Merged` or `🚧 In Progress` and extract PR numbers. If found, run `gh pr view <N> --json number,title,headRefName,state` per number.
+    - If zero PRs returned from `gh pr list` → fall back to `docs/plans/progress.md` (or `docs_template/plans/progress.md`). Scan the `✅ Merged` and `🚧 In Progress` tables in the PR Status section and extract PR numbers. If found, run `gh pr view <N> --json number,title,headRefName,state` per number.
     - If still zero PRs found → stop: "No matching PRs found."
     - Store PR list (number, title, branch, state) in state file `prs` field.
 
@@ -333,7 +333,7 @@ Process fixes in the order from Step A2, grouped by file:
 ## Step B6 — Update tracking docs
 
 1. **`docs/plans/progress.md`** (if exists):
-   - Add row to PR Status or sessions table: "Audit PR#{N} — {N} fixes, merged"
+   - Add row to `✅ Merged` table in PR Status: "Audit PR#{N} — {N} fixes, merged"
 
 2. **`docs/navigation.md`** (if exists):
    - Set **Current focus** to the next pending item (or `idle`), `Branch` → `main`

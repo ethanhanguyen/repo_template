@@ -140,7 +140,7 @@ Write each approved deliverable using the template structures:
 ## Step B2 — Update tracking docs
 
 1. **`docs/plans/progress.md`**:
-   - Add rows to **PR Status** table — status `📋 Planned`
+   - Add rows to `📋 Planned` table in **PR Status**
    - Update **Dependency graph** if multi-phase
 2. **`docs/navigation.md`**:
    - Set **Current focus** → this plan's description, Key files → expected files

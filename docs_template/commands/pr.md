@@ -32,18 +32,18 @@ Update status as each phase completes.
 
 ## Phase 1 — Match PR & status update
 
-1. Read `docs/plans/progress.md` — the **PR Status** table
+1. Read `docs/plans/progress.md` — the **PR Status** section (multiple tables by status)
 2. **Match the PR** by `<description>`:
-   - `<description>` looks like `PR{N}` → match by exact PR number in the table
-   - `<description>` is text → match by description substring (case-insensitive) against rows with status `📋 Planned`
-   - `<description>` is empty → auto-pick the first row with status `📋 Planned`
-   - If matched row has status `✅ Merged` → stop; tell user that PR already completed.
-   - If matched row has status `🚧 In Progress` → warn that PR is already in progress, ask user whether to resume or start over.
+   - `<description>` looks like `PR{N}` → match by exact PR number in any table
+   - `<description>` is text → match by description substring (case-insensitive) against the `📋 Planned` table
+   - `<description>` is empty → auto-pick the first row in the `📋 Planned` table
+   - If matched row is in `✅ Merged` section → stop; tell user that PR already completed.
+   - If matched row is in `🚧 In Progress` section → warn that PR is already in progress, ask user whether to resume or start over.
    - If no match → stop; tell user "No planned PR matches. Run `/plan` first or check progress.md."
 3. Read the PR plan doc: `docs/plans/PR{N}-{slug}.md`
    - Confirm it exists and is filled out
    - Note: spec file, phase plan, and ADR links in its Related section
-4. Update `docs/plans/progress.md`: change matched row status from `📋 Planned` to `🚧 In Progress`
+4. Update `docs/plans/progress.md`: move the matched row from `📋 Planned` table to `🚧 In Progress` table
 5. Update `docs/navigation.md` **Current focus** — set to this PR, key files from plan doc
 
 *→ Mark Phase 1 todo complete, mark Phase 2 in_progress*
@@ -141,7 +141,7 @@ For each group in order:
 2. Merge the branch into `main` (fast-forward if possible, otherwise merge commit)
 3. Push `main` to remote
 4. While on `main`, update progress docs and commit them:
-   - Update `docs/plans/progress.md` — mark PR row status `✅ Merged`
+   - Update `docs/plans/progress.md` — move PR row from `🚧 In Progress` to `✅ Merged` section, update `{count}`
    - Update `docs/navigation.md`:
      - Set **Current focus** to next pending PR (or `idle` if none), `Phase` → `—`, `Branch` → `main`
      - **Scout corrections** — add any gotchas discovered during this PR (e.g. "When adding X, grep for Y first", "Classes in module Z use pattern W").
