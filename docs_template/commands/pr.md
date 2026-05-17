@@ -24,9 +24,17 @@ Before any work, create a todo list with these items (mark the top one `in_progr
 1. Phase 1 — Match PR & status update
 2. Phase 2 — Implement (TDD per component)
 3. Phase 3 — Quality gates + behavioral self-review
-4. Phase 4 — Commit, push & merge to main
+4. Phase 4 — Open PR, merge to main
 
 Update status as each phase completes.
+
+When entering Phase 2, replace the single Phase 2 todo with sub-items:
+
+2a. Analyze independence
+2b. Execute parts
+2c. Integration check
+
+Mark each sub-item complete as it finishes. When all 2a/2b/2c are complete, mark Phase 3 in_progress.
 
 ---
 
@@ -135,19 +143,34 @@ For each group in order:
 
 ---
 
-## Phase 4 — Commit, push & merge to main
+## Phase 4 — Open PR, merge to main
 
-1. Commit (conventional commit) and push all code changes
-2. Merge the branch into `main` (fast-forward if possible, otherwise merge commit)
-3. Push `main` to remote
-4. While on `main`, update progress docs and commit them:
+1. Commit (conventional commit) and push all code changes to the feature branch
+2. Open a PR:
+   ```bash
+   gh pr create --base main --head {branch} --title "{PR title from plan doc}" --body "$(cat <<'EOF'
+   ## Summary
+   {summary from plan doc}
+   EOF
+   )"
+   ```
+3. Merge the PR:
+   ```bash
+   gh pr merge --merge --delete-branch
+   ```
+   (If `gh pr merge` fails, fall back to `git checkout main && git pull origin main && git merge {branch} && git push origin main && git branch -d {branch}`)
+4. Checkout `main` and pull latest:
+   ```bash
+   git checkout main && git pull origin main
+   ```
+5. Update progress docs and commit them:
    - Update `docs/plans/progress.md` — move PR row from `🚧 In Progress` to `✅ Merged` section, update `{count}`
    - Update `docs/navigation.md`:
      - Set **Current focus** to next pending PR (or `idle` if none), `Phase` → `—`, `Branch` → `main`
      - **Scout corrections** — add any gotchas discovered during this PR (e.g. "When adding X, grep for Y first", "Classes in module Z use pattern W").
      - **Task map** — update if this PR added or changed any workflows
    - `git add docs/` && `git commit -m "docs: mark PR{N} merged"` && `git push`
-5. Report: branch name, files changed, tests added, gates passed, merged ✓
+6. Report: branch name, PR link, files changed, tests added, gates passed, merged ✓
 
 *→ Mark Phase 4 todo complete*
 
