@@ -275,7 +275,7 @@ Process fixes in the order from Step A2, grouped by file:
 
 4. Mark B3 approved, `current_step: B4`.
 
-## Step B4 — Write audit report
+## Step B4 — Write audit report + tracking docs (on feature branch)
 
 1. Create `docs/audits/` directory if it doesn't exist:
    ```bash
@@ -320,9 +320,19 @@ Process fixes in the order from Step A2, grouped by file:
 
 3. If multiple PRs audited, create one report per PR.
 
-4. Mark B4 approved, `current_step: B5`.
+4. Update tracking docs on the feature branch:
+   - **`docs/plans/progress.md`** (if exists): add row to `✅ Merged` table in PR Status: "Audit PR#{N} — {N} fixes, merged"
+   - **`docs/navigation.md`** (if exists):
+     - Set **Current focus** to the next pending item (or `idle`), `Branch` → `main`
+     - **Scout corrections** — add gotchas discovered during audit (e.g. "Audit found X pattern — grep for Y before adding Z")
+   - **`docs/archive/learnings.md`** (if exists): log "{DATE} — /audit_pr {slug}: found {N} issues, applied {M} fixes. Key takeaway: {1-line}"
+   - **`docs/index.md`** (if exists and has audits section): add link to audit report under `## Audits` section (create if missing)
 
-## Step B5 — Squash merge to main + cleanup
+5. `git add docs/` && `git commit -m "docs: audit {slug} — report + tracking"`
+
+6. Mark B4 approved, `current_step: B5`.
+
+## Step B5 — Squash merge to main (code + docs land together)
 
 1. `git checkout main && git pull origin main`
 2. `git merge --squash {branch_name}`
@@ -330,26 +340,10 @@ Process fixes in the order from Step A2, grouped by file:
 4. `git branch -d {branch_name}`
 5. `git push origin main`
 
-## Step B6 — Update tracking docs
+## Step B6 — Cleanup
 
-1. **`docs/plans/progress.md`** (if exists):
-   - Add row to `✅ Merged` table in PR Status: "Audit PR#{N} — {N} fixes, merged"
-
-2. **`docs/navigation.md`** (if exists):
-   - Set **Current focus** to the next pending item (or `idle`), `Branch` → `main`
-   - **Scout corrections** — add gotchas discovered during audit (e.g. "Audit found X pattern — grep for Y before adding Z")
-
-3. **`docs/archive/learnings.md`** (if exists):
-   - Log: "{DATE} — /audit_pr {slug}: found {N} issues, applied {M} fixes. Key takeaway: {1-line}"
-
-4. **`docs/index.md`** (if exists and has audits section):
-   - Add link to audit report under new `## Audits` section (create if missing)
-
-5. `git add docs/` && `git commit -m "docs: audit {slug} — report + tracking"` && `git push`
-
-6. Delete `/tmp/audit-pr-state-{slug}.md`
-
-7. Mark `current_step: committed`.
+1. Delete `/tmp/audit-pr-state-{slug}.md`
+2. Mark `current_step: committed`.
 
 ## Step B7 — Report
 
