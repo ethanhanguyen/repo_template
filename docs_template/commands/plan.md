@@ -9,8 +9,8 @@ Also trigger on "plan for <description>" or "create a plan for <description>" (v
 ## Rules
 
 - **Docs only**: no code implementation. Create docs, commit to main, push, stop.
-- **Approval gates**: I1 (investigation report) and A6 (final summary). Steps A1–A5 proceed without stopping — agent makes best judgments and moves on. No spec, phase plan, PR doc, or ADR file is written until A6 is approved.
-- **Stop rule**: after presenting I1 or A6 and asking for approval, STOP. Wait for user response. If `approved` → continue on same turn. If feedback → apply, re-present, stop.
+- **Approval gates**: I3 (solution proposal) and A6 (final summary). I1 (investigation summary) and I2 (solution options) are FYI only — no approval asked. Steps A1–A5 proceed without stopping — agent makes best judgments and moves on. No spec, phase plan, PR doc, or ADR file is written until A6 is approved.
+- **Stop rule**: after presenting I3 or A6 and asking for approval, STOP. Wait for user response. If `approved` → continue on same turn. If feedback → re-propose (I2) / re-draft, re-present, stop.
 - **Evidence before claims**: show fresh command output for every gate.
 
 ## Session resume (DO THIS FIRST EVERY TURN)
@@ -25,11 +25,29 @@ Also trigger on "plan for <description>" or "create a plan for <description>" (v
 
 ## Progress tracking
 
-Create a todo list:
+Create a todo list using TodoWrite with these items:
 
-1. Phase I — Investigate (agent-delegated)
-2. Phase A — Discuss & draft (verbal only)
-3. Phase B — Write & commit (after final approval)
+| # | Task | Status flow |
+|---|------|-------------|
+| 1 | I0 — Initialize + dispatch investigation | pending → in_progress → completed |
+| 2 | I1 — Present investigation summary (FYI only) | pending → in_progress → completed |
+| 3 | I2 — Propose solutions (pros/cons/recommendation) | pending → in_progress → completed |
+| 4 | I3 — Solution approval gate | pending → in_progress → action_required (while waiting) |
+| 5 | A1 — Assess complexity | pending → in_progress → completed |
+| 6 | A2 — Draft spec (Simple → cancelled) | pending → in_progress → completed/cancelled |
+| 7 | A3 — Draft phase plan (Simple → cancelled) | pending → in_progress → completed/cancelled |
+| 8 | A4 — Draft PR docs | pending → in_progress → completed |
+| 9 | A5 — Draft ADRs (none needed → cancelled) | pending → in_progress → completed/cancelled |
+| 10 | A6 — Final approval gate | pending → in_progress → action_required (while waiting) |
+| 11 | B1 — Write docs to files | pending → in_progress → completed |
+| 12 | B2 — Update tracking docs | pending → in_progress → completed |
+| 13 | B3 — Commit to main + push | pending → in_progress → completed |
+
+Rules:
+- Update status in real-time. Only one `in_progress` at a time.
+- Gate steps (I3, A6): set to `action_required` when presenting and waiting for user.
+- Cancelled steps still get marked (not deleted).
+- This TODO list replaces any previous.
 
 ---
 
@@ -61,31 +79,67 @@ Create a todo list:
    | Feature | `explore` (very thorough) | "Explore codebase for: {description}. Understand existing patterns, module boundaries, adjacent code, extension points. Return: (1) relevant modules/files with key interfaces, (2) existing patterns to follow, (3) integration points, (4) risks/gotchas." |
 
 7. Wait for agent result. Store the full agent response in a variable `investigation_report`.
-8. Mark I0 `approved`, `current_step: I1`.
+8. Mark I0 `approved`, `current_step: I1`. Mark I0 todo `completed`, I1 todo `in_progress`.
+9. Add row to `docs/plans/progress.md` → `## Active plan sessions` table:
+
+   ```
+   | {slug} | I1 | {today} | {today} |
+   ```
 
 *→ Update plan-state.md: I0 approved + current_step=I1*
 
-## Step I1 — Investigation approval gate
+## Step I1 — Present investigation summary (FYI only, no approval)
 
 1. **Present** the investigation report with a compact summary:
-   - Bug: root cause (1 line), affected files, recommended fix strategy
+   - Bug: root cause (1 line), affected files
    - Feature: relevant modules, patterns to follow, integration points
    - Always include the raw agent output (collapsed) below the summary
 
-2. **Ask**: "Investigation complete. Reply **approved** to proceed to planning, or tell me what to re-examine."
+2. Do NOT ask for approval. State: "Investigation summary above. Next: proposing solutions."
+
+3. Mark I1 `approved`, `current_step: I2`. Store `investigation_report` field in plan-state.md. Mark I1 todo `completed`, I2 todo `in_progress`. Continue immediately.
+
+*→ Update plan-state.md: I1 approved + current_step=I2 + investigation report stored*
+
+## Step I2 — Solution proposal
+
+1. **Goal**: propose 2–3 distinct solution approaches based on the investigation. Do NOT draft specs or PR docs yet.
+
+2. **Format** for each option:
+
+   ### Option {A|B|C}: {short label}
+   - **Approach**: 1–2 sentences describing the solution
+   - **Pros**: bullet list of advantages
+   - **Cons**: bullet list of disadvantages / risks
+   - **Effort**: Simple/Medium/Large (1 sentence)
+
+3. **Recommendation**: pick one option and explain WHY — tie to project conventions, existing patterns, risk minimization, or explicit tradeoff choice.
+
+4. Do NOT ask for approval yet. State: "---" separator after recommendation, then continue to I3.
+
+5. Mark I2 `approved`, `current_step: I3`. Mark I2 todo `completed`, I3 todo `in_progress` with status `action_required`. Continue immediately to I3.
+
+*→ Update plan-state.md: I2 approved + current_step=I3*
+
+## Step I3 — Solution approval gate
+
+1. **Present** the solution options + recommendation (already drafted in I2).
+
+2. **Ask**: "Select approach or approve the recommendation. Reply **approved** (accepts recommendation), or specify **Option {A|B|C}**, or tell me what to reconsider."
 
 3. **Wait for user response**:
-   - `approved` → mark I1 `approved`, `current_step: A1`, set `investigation_report` field in plan-state.md, proceed immediately to Step A1.
-   - Feedback → re-dispatch investigation agent with new guidance, re-present report, stop.
+   - `approved` → use the recommended option, mark I3 `approved`, `current_step: A1`. Update `docs/plans/progress.md` → Active plan sessions: `Step` to `A1`, update `Last activity`. Mark I3 todo `action_required` → `completed`, A1 todo `in_progress`. Proceed immediately to Step A1.
+   - `Option A` / `Option B` / `Option C` → use that option, mark I3 `approved`, `current_step: A1`. Update `docs/plans/progress.md` → Active plan sessions: `Step` to `A1`, update `Last activity`. Mark I3 todo `action_required` → `completed`, A1 todo `in_progress`. Proceed immediately to Step A1.
+   - Feedback → re-draft I2 with new guidance (add/remove options, re-evaluate), re-present I2+I3, stop.
 
-*→ Update plan-state.md: I1 approved + current_step=A1 + investigation report stored*
+*→ Update plan-state.md: I3 approved + current_step=A1 + chosen solution stored*
 
 ---
 
 # Phase A — Discuss & Draft
 (verbal only, nothing written to docs/; tracking in /tmp/plan-state-{slug}.md)
 
-Context: use `investigation_report` throughout.
+Context: use `investigation_report` and `chosen_solution` (from I3) throughout.
 
 ## Step A1 — Assess complexity → route
 
@@ -125,7 +179,7 @@ If architectural decisions needed: draft verbally using `docs/decisions/YYYY-MM-
    - Tier, spec status, phase plan, PR list (PR{N0}...), ADRs
 2. **Ask**: "Approve plan? Reply **approved** to write docs or tell me what to change."
 3. **Wait for user response**:
-   - `approved` → mark A6 approved, `current_step: B1`, proceed to Phase B.
+   - `approved` → mark A6 approved, `current_step: B1`. Update `docs/plans/progress.md` → Active plan sessions: `Step` to `B1`, update `Last activity`. Mark A6 todo `action_required` → `completed`, B1 todo `in_progress`. Proceed to Phase B.
    - Feedback → re-draft affected step(s) + downstream, re-present A6, stop.
 
 ---
@@ -148,16 +202,24 @@ Write each approved deliverable using the template structures:
 1. **`docs/plans/progress.md`**:
    - Add rows to `📋 Planned` table in **PR Status**
    - Update **Dependency graph** if multi-phase
-2. **`docs/navigation.md`**:
+   - Update `## Active plan sessions` row: set `Step` to `B2`, update `Last activity`
+
+2. **TODO list**: Mark B2 `in_progress`, B1 `completed`.
+
+3. **`docs/navigation.md`**:
    - Set **Current focus** → this plan's description, Key files → expected files
    - Set Phase → current phase number, Branch → `main`
-3. **`docs/architecture.md`**:
+
+4. **`docs/architecture.md`**:
    - Update **Module boundaries**, **Data flow**, or **Tech stack** if changed
    - Update **Key design decisions** if new ADRs
-4. **`docs/index.md`**:
+
+5. **`docs/index.md`**:
    - Add spec link to **Current specs** (Medium/Large)
    - Add phase plan link to **Plans**
    - Add ADR links to **Decisions**
+
+6. Mark B2 `approved`, `current_step: B3`. Mark B2 todo `completed`, B3 todo `in_progress`.
 
 ## Step B3 — Commit to main + push
 
@@ -165,6 +227,7 @@ Write each approved deliverable using the template structures:
 2. `git commit -m "docs: plan {slug} — spec, phase{N} plan, {N} PRs"`
 3. `git push origin main`
 4. Delete `/tmp/plan-state-{slug}.md` (plan committed, state file no longer needed)
-5. Report: plan doc paths, PRs created (numbers + descriptions), branch `main`, next step: `/pr <N|keywords>`
+5. **`docs/plans/progress.md`**: remove plan row from `## Active plan sessions`.
+6. Mark B3 todo `completed`. Report: plan doc paths, PRs created (numbers + descriptions), branch `main`, next step: `/pr <N|keywords>`
 
 ---USER-DESCRIPTION---

@@ -7,6 +7,14 @@ Master tracking: PRs, pipeline, quality, sessions.
 <!-- List current blockers with owner and ETA -->
 - (none)
 
+## Active plan sessions
+
+<!-- One row per in-progress /plan session. Removed on commit (B3). -->
+
+| Slug | Step | Started | Last activity |
+|------|------|---------|---------------|
+| — | — | — | — |
+
 ## PR Status
 
 <!-- Keep active+planned visible, collapse merged+backlog. Newest last in merged. -->

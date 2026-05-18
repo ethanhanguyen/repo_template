@@ -12,6 +12,7 @@
 | **Slug** | `{slug}` |
 | **Original description** | {user's /plan description} |
 | **Investigation report** | (set at I1) |
+| **Chosen solution** | (set at I3) |
 | **Complexity tier** | unset |
 | **Current step** | I0 |
 
@@ -20,7 +21,9 @@
 | Step | Deliverable | Status | Notes |
 |------|-------------|--------|-------|
 | I0 | Investigation dispatch | pending | — |
-| I1 | Investigation report | pending | ← user-facing gate |
+| I1 | Investigation summary | pending | FYI only, no approval |
+| I2 | Solution options | pending | pros/cons/recommendation |
+| I3 | Solution approach | pending | ← user-facing gate |
 | A1 | Complexity tier | pending | — |
 | A2 | Spec | pending | — |
 | A3 | Phase plan | pending | — |

@@ -145,8 +145,18 @@ For each group in order:
 
 ## Phase 4 — Open PR, merge to main
 
-1. Commit (conventional commit) and push all code changes to the feature branch
-2. Open a PR:
+1. Update plan docs on the feature branch:
+   - Update `docs/plans/progress.md` — move PR row from `🚧 In Progress` to `✅ Merged` section, update `{count}`
+   - Update `docs/navigation.md`:
+     - Set **Current focus** to next pending PR (or `idle` if none), `Phase` → `—`, `Branch` → `main`
+     - **Scout corrections** — add any gotchas discovered during this PR (e.g. "When adding X, grep for Y first", "Classes in module Z use pattern W").
+     - **Task map** — update if this PR added or changed any workflows
+   - `git add docs/` && `git commit -m "docs: mark PR{N} merged"`
+2. Push the feature branch:
+   ```bash
+   git push origin {branch}
+   ```
+3. Open a PR:
    ```bash
    gh pr create --base main --head {branch} --title "{PR title from plan doc}" --body "$(cat <<'EOF'
    ## Summary
@@ -154,22 +164,15 @@ For each group in order:
    EOF
    )"
    ```
-3. Merge the PR:
+4. Merge the PR (code + docs land together in one merge):
    ```bash
    gh pr merge --merge --delete-branch
    ```
    (If `gh pr merge` fails, fall back to `git checkout main && git pull origin main && git merge {branch} && git push origin main && git branch -d {branch}`)
-4. Checkout `main` and pull latest:
+5. Checkout `main` and pull latest:
    ```bash
    git checkout main && git pull origin main
    ```
-5. Update progress docs and commit them:
-   - Update `docs/plans/progress.md` — move PR row from `🚧 In Progress` to `✅ Merged` section, update `{count}`
-   - Update `docs/navigation.md`:
-     - Set **Current focus** to next pending PR (or `idle` if none), `Phase` → `—`, `Branch` → `main`
-     - **Scout corrections** — add any gotchas discovered during this PR (e.g. "When adding X, grep for Y first", "Classes in module Z use pattern W").
-     - **Task map** — update if this PR added or changed any workflows
-   - `git add docs/` && `git commit -m "docs: mark PR{N} merged"` && `git push`
 6. Report: branch name, PR link, files changed, tests added, gates passed, merged ✓
 
 *→ Mark Phase 4 todo complete*
