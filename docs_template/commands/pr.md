@@ -50,9 +50,17 @@ Mark each sub-item complete as it finishes. When all 2a/2b/2c are complete, mark
    - If no match → stop; tell user "No planned PR matches. Run `/plan` first or check progress.md."
 3. Read the PR plan doc: `docs/plans/PR{N}-{slug}.md`
    - Confirm it exists and is filled out
-   - Note: spec file, phase plan, and ADR links in its Related section
-4. Update `docs/plans/progress.md`: move the matched row from `📋 Planned` table to `🚧 In Progress` table
-5. Update `docs/navigation.md` **Current focus** — set to this PR, key files from plan doc
+    - Note: spec file, phase plan, and ADR links in its Related section
+    - **Check dependencies**: if the PR header lists `Dependencies: PR#{X}`, verify each against the `✅ Merged` table in `docs/plans/progress.md`. If any dep is not merged → warn: "PR{N} depends on PR{X} (not merged). Continue?" Ask user. Stop if no.
+ 4. **Set up feature branch**:
+    - Branch name: `pr{N}-{slug}` from the PR plan doc `## Enforcement` section
+    - `git fetch origin main`
+    - **Branch does not exist** → `git checkout -b pr{N}-{slug} origin/main`
+    - **Branch exists and resuming** (from step 2 "resume" choice) → `git checkout pr{N}-{slug}`
+    - **Branch exists and starting fresh** (from step 2 "start over" or new planned PR) → `git branch -D pr{N}-{slug} && git checkout -b pr{N}-{slug} origin/main`
+    - `git push -u origin pr{N}-{slug}`
+ 5. Update `docs/plans/progress.md`: move the matched row from `📋 Planned` table to `🚧 In Progress` table
+ 6. Update `docs/navigation.md` **Current focus** — set to this PR, key files from plan doc
 
 *→ Mark Phase 1 todo complete, mark Phase 2 in_progress*
 
@@ -147,6 +155,7 @@ For each group in order:
 
 1. Update plan docs on the feature branch:
    - Update `docs/plans/progress.md` — move PR row from `🚧 In Progress` to `✅ Merged` section, update `{count}`
+   - In `docs/plans/progress.md` `## Dependency graph` section: if a line contains `🚧 PR{N}` (where N matches this PR) → replace with `✅ PR{N}`. If the graph still has template placeholders (`PR{N}` as literal text, no actual PR number), skip.
    - Update `docs/navigation.md`:
      - Set **Current focus** to next pending PR (or `idle` if none), `Phase` → `—`, `Branch` → `main`
      - **Scout corrections** — add any gotchas discovered during this PR (e.g. "When adding X, grep for Y first", "Classes in module Z use pattern W").
@@ -169,11 +178,15 @@ For each group in order:
    gh pr merge --merge --delete-branch
    ```
    (If `gh pr merge` fails, fall back to `git checkout main && git pull origin main && git merge {branch} && git push origin main && git branch -d {branch}`)
-5. Checkout `main` and pull latest:
-   ```bash
-   git checkout main && git pull origin main
-   ```
-6. Report: branch name, PR link, files changed, tests added, gates passed, merged ✓
+ 5. Checkout `main` and pull latest:
+    ```bash
+    git checkout main && git pull origin main
+    ```
+ 6. **Report**: branch name, PR link, files changed, tests added, gates passed, merged ✓
+ 7. **Check remaining PRs**:
+    - Read `docs/plans/progress.md` `📋 Planned` table
+    - If rows remain → output: "PR{N} done. {M} remaining: PR{X}, PR{Y}. Next: `/pr {X}`."
+    - If no rows → output: "PR{N} done. No remaining planned PRs."
 
 *→ Mark Phase 4 todo complete*
 
